@@ -1,0 +1,51 @@
+% !TeX spellcheck = <none>
+\documentclass{article}
+\usepackage{polski}
+\usepackage[utf8]{inputenc}
+\renewcommand{\baselinestretch}{1.5}
+\usepackage{secdot}
+\sectiondot{subsection}
+
+\title{Komunikacja wieloprocesowa w języku Linda realizowana przy pomocy pamięci współdzielonej oraz semaforów}
+\author{Michał Sypetkowski, Marcin Waszak, Łukasz Wlazły}
+\date{}
+
+\begin{document}
+	\maketitle
+	\newpage
+	
+	\section{Treść zadania}
+	TU TRZEBA WPISAĆ TREŚĆ!!!!!!!!!!!!!
+	
+	\section{Interpretacja treści zadania}
+	\subsection{Założenia}
+	\begin{enumerate}
+		\item Krotki będą przechowywane w obszarze pamięci współdzielonej, do której dostęp będzie miał każdy proces korzystający z API dostępnego w tworzonej bibliotece.
+		\item Synchronizacja między procesami będzie możliwa, dzięki wykorzystaniu semaforów.
+		\item Biblioteka będzie korzystała z pamięci współdzielonej i semaforów zgodnymi ze standardem System V.
+		\item Projekt zostanie wykonany w języku C++ (standard C++17).
+		\item Maksymalny rozmiar jednej krotki zostanie ograniczony do 256 B. Na dane użytkownika zostanie przeznaczone 1 MB pamięci współdzielonej, co pozwoli na umieszczenie 4096 krotek.
+		\item Na początku obszaru pamięci współdzielonej zostaną umieszczone dwie tablice: jedna będzie zawierała mapowanie obszaru pamięci, co pozwoli na szybkie znajdowanie wolnych miejsc na nowe krotki, druga będzie zawierała mapowanie tablicy semaforów i pomoże znaleźć wolny semafor, na którym proces będzie mógł się zawiesić.
+		\item Tablica semaforów, która zostanie użyta przez bibliotekę będzie zawierać 256 pól, z czego pierwsze cztery zostaną użyte do synchronizacji dostępu do obszarów współdzielonych, natomiast pozostałe będą mogły służyć procesom do zawieszenia się w czasie oczekiwania na krotkę pasującą do wyrażenia.
+		\item W systemie będzie obecny demon serwisowy, którego zadaniem jest inicjalizacja tablicy semaforów oraz obszaru pamięci współdzielonej. Będzie on także wybudzał procesy po pojawieniu się nowej krotki w celu sprawdzenia, czy warunek oczekiwania został spełniony.
+		\item Obszar pamięci na krotki będzie ciągły, dlatego przed każdą daną będzie znajdował się jeden bajt informujący o jego typie, zatem zmienna typu \texttt{integer} będzie w pamięci zajmowała 5 B, natomiast zmienna typu \texttt{string} będzie zajmowała długość według wzoru: ilość znaków + 2 B (jeden bajt na typ i jeden na zakończenie ciągu). Koniec krotki będzie również sygnalizowany specjalnym bajtem.
+	\end{enumerate}
+
+	\subsection{API}
+	Użytkownik biblioteki będzie miał do dyspozycji dwie klasy. Klasa \texttt{Tuple} będzie abstrakcją dla tworzonych krotek i umożliwi łatwiejsze ich tworzenie oraz analizę sytuacji błędnych. Klasa \texttt{Buffer} która będzie udostępniać trzy metody zawarte w treści zadania:
+	\begin{itemize}
+		\item \texttt{int output(Tuple t) }
+		\item \texttt{std::optional<Tuple> input(std::string expr, unsigned int timeout)}
+		\item \texttt{std::optional<Tuple> read(std::string expr, unsigned int timeout)}
+	\end{itemize}
+	Klasa \texttt{Tuple} będzie w stanie przedstawić swoją zawartość w dwojaki sposób: w formie wygodnej dla użytkownika oraz w postaci sformatowej do zapisu w obszarze pamięci współdzielonej. 
+	Wyrażenia przekazywane przez metody \texttt{input} oraz \texttt{read} zostaną przeanalizowane przez klasę \texttt{ExpressionParser} i posłużą do zbadania zawartości pamięci współdzielonej.
+	
+	\subsection{Obsługa błędów}
+	Wszystkie sytuacje błędne będą sygnalizowane poprzez wartości zwracane z funkcji.
+	Metoda \texttt{output} może zakończyć się na dwa sposoby: sukcesem lub porażką z powodu braku pamięci na nową krótkę. Sytuacje te zostaną zmapowane na wartości liczbowe i zwrócone do użytkownika.
+	Metody \texttt{input} oraz \texttt{read} zwrócą krotkę, jeśli istnieje lub nic jeśli krotka pasująca do wyrażenia nie znajdzie się w buforze przez upłynięciem podanego czasu. Klasa \texttt{std::optional} z biblioteki standardowej pozwoli na bezpieczne obsłużenie obu sytuacji.
+	
+	
+	
+\end{document}
