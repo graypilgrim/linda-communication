@@ -19,16 +19,23 @@
 	
 	\section{Interpretacja treści zadania}
 	\subsection{Założenia}
+    \texttt{ELEM\_SIZE}, \texttt{MAX\_TUPLES\_COUNT} - stałe edytowalne przed kompilacją, domyślnie 256 i 4096,
 	\begin{enumerate}
 		\item Krotki będą przechowywane w obszarze pamięci współdzielonej, do której dostęp będzie miał każdy proces korzystający z API dostępnego w tworzonej bibliotece.
+        \item Pamięć współdzielona zawiera listę krotek.
+        \item Każdy element listy ma wielkość \texttt{ELEM\_SIZE} bajtów.
+        \item Każdy element listy zawiera dane krotki, wskaźnik na następny element w liście oraz writer-readers (paczkę semaforów/mutexów) do synchronizacji.
+        \item Wskaśnik na pierwszy element listy jest współdzielony i synchronizowany mechanizmem writer-readers.
+        \item Dodawanie elementu jest na koniec listy (dla optymalizacji współdzielony jest również synchronizowany mechanizmem writer-readers wskaźnik na koniec).
+        \item Usuwanie elementu z listy wymaga 2 dostępów pisarza (dla 2 sąsiednich elementów - poprzednika i usuwanego).
+        \item Odczytywanie polega na przeiterowanie się po liście aż odnajdzie się pasujący element (wymaga dostępów czytelnika dla obecnie czytanego elementu).
 		\item Synchronizacja między procesami będzie możliwa, dzięki wykorzystaniu semaforów.
-		\item Biblioteka będzie korzystała z pamięci współdzielonej i semaforów zgodnymi ze standardem System V.
 		\item Projekt zostanie wykonany w języku C++ (standard C++17).
-		\item Maksymalny rozmiar jednej krotki zostanie ograniczony do 256 B. Na dane użytkownika zostanie przeznaczone 1 MB pamięci współdzielonej, co pozwoli na umieszczenie 4096 krotek.
+        \item Maksymalna liczba krotek jest stała - \texttt{MAX\_TUPLES\_COUNT}.
 		\item Na początku obszaru pamięci współdzielonej zostaną umieszczone dwie tablice: jedna będzie zawierała mapowanie obszaru pamięci, co pozwoli na szybkie znajdowanie wolnych miejsc na nowe krotki, druga będzie zawierała mapowanie tablicy semaforów i pomoże znaleźć wolny semafor, na którym proces będzie mógł się zawiesić.
 		\item Tablica semaforów, która zostanie użyta przez bibliotekę będzie zawierać 256 pól, z czego pierwsze cztery zostaną użyte do synchronizacji dostępu do obszarów współdzielonych, natomiast pozostałe będą mogły służyć procesom do zawieszenia się w czasie oczekiwania na krotkę pasującą do wyrażenia.
 		\item W systemie będzie obecny demon serwisowy, którego zadaniem jest inicjalizacja tablicy semaforów oraz obszaru pamięci współdzielonej. Będzie on także wybudzał procesy po pojawieniu się nowej krotki w celu sprawdzenia, czy warunek oczekiwania został spełniony.
-		\item Obszar pamięci na krotki będzie ciągły, dlatego przed każdą daną będzie znajdował się jeden bajt informujący o jego typie, zatem zmienna typu \texttt{integer} będzie w pamięci zajmowała 5 B, natomiast zmienna typu \texttt{string} będzie zajmowała długość według wzoru: ilość znaków + 2 B (jeden bajt na typ i jeden na zakończenie ciągu). Koniec krotki będzie również sygnalizowany specjalnym bajtem.
+		\item Obszar pamięci na krotki zawierał nagłówek określający ilość elementów krotki i typy jej elementów + ich offsety, wartości elementów stanowią resztę obszaru.
 	\end{enumerate}
 
 	\subsection{API}
