@@ -1,4 +1,3 @@
-% !TeX spellcheck = <none>
 \documentclass{article}
 \usepackage{polski}
 \usepackage[utf8]{inputenc}
@@ -13,29 +12,34 @@
 \begin{document}
 	\maketitle
 	\newpage
-	
+
 	\section{Treść zadania}
-	TU TRZEBA WPISAĆ TREŚĆ!!!!!!!!!!!!!
-	
+	Komunikacja między-procesowa w Lindzie realizowana jest poprzez wspólną dla wszystkich procesów przestrzeń krotek.
+    Krotki są arbitralnymi tablicami dowolnej długości składającymi się z elementów 2 typów podstawowych: \texttt{string}, \texttt{integer}.
+    Przykłady krotek: \texttt{(1, "abc", "xyz")}, \texttt{(10, "abc")}.
+    Funkcja \texttt{output} umieszcza krotkę w przestrzeni.
+    Funkcja \texttt{input} pobiera i atomowo usuwa krotkę z przestrzeni przy czym wybór krotki następuje poprzez dopasowanie wzorca-krotki.
+    Wzorzec jest krotką, w której dowolne składniki mogą być niewyspecyfikowane: "\texttt{*}" (podany jest tylko typ) lub zadane warunkiem logicznym. Przyjąć warunki: \texttt{==}, \texttt{<}, \texttt{<=}, \texttt{>}, \texttt{>=}. \\
+    Przykład: \texttt{input(integer:1, string:*, string:"xy*")} - pobierze pierwszą krotkę z przykładu wyżej zaś: \texttt{input(integer:>2, string:"abc")} drugą.
+    Operacja \texttt{read} działa tak samo jak \texttt{input}, lecz nie usuwa krotki z przestrzeni. Operacje \texttt{read} i \texttt{input} zawsze zwracają jedną krotkę.
+    W przypadku, gdy wyspecyfikowana krotka nie istnieje, operacje \texttt{read} i \texttt{input} zawieszają się do czasu pojawienia się oczekiwanej danej.
+
 	\section{Interpretacja treści zadania}
 	\subsection{Założenia}
-    \texttt{ELEM\_SIZE}, \texttt{MAX\_TUPLES\_COUNT} - stałe edytowalne przed kompilacją, domyślnie 256 i 4096,
 	\begin{enumerate}
-		\item Krotki będą przechowywane w obszarze pamięci współdzielonej, do której dostęp będzie miał każdy proces korzystający z API dostępnego w tworzonej bibliotece.
-        \item Pamięć współdzielona zawiera listę krotek.
-        \item Każdy element listy ma wielkość \texttt{ELEM\_SIZE} bajtów.
-        \item Każdy element listy zawiera dane krotki, wskaźnik na następny element w liście oraz writer-readers (paczkę semaforów/mutexów) do synchronizacji.
-        \item Wskaśnik na pierwszy element listy jest współdzielony i synchronizowany mechanizmem writer-readers.
-        \item Dodawanie elementu jest na koniec listy (dla optymalizacji współdzielony jest również synchronizowany mechanizmem writer-readers wskaźnik na koniec).
-        \item Usuwanie elementu z listy wymaga 2 dostępów pisarza (dla 2 sąsiednich elementów - poprzednika i usuwanego).
-        \item Odczytywanie polega na przeiterowanie się po liście aż odnajdzie się pasujący element (wymaga dostępów czytelnika dla obecnie czytanego elementu).
-		\item Synchronizacja między procesami będzie możliwa, dzięki wykorzystaniu semaforów.
+		\item \texttt{ELEM\_SIZE}, \texttt{MAX\_TUPLES\_COUNT} - stałe edytowalne przed kompilacją, domyślnie 256 i 4096
+		\item Krotki będą przechowywane w obszarze pamięci współdzielonej w postaci listy, do której dostęp będzie miał każdy proces korzystający z API dostępnego w tworzonej bibliotece.
+		\item Pamięć współdzielona zawiera listę krotek.
+		\item Każdy element listy ma wielkość \texttt{ELEM\_SIZE} bajtów.
+		\item Każdy element listy zawiera: dane krotki, wskaźnik na następny element w liście oraz parę semaforów ("pisarz" oraz "czytelni") do synchronizacji.
+		\item Wskaźnik na pierwszy element listy jest współdzielony i synchronizowany mechanizmem semaforów.
+		\item Nowy element dodawany jest na koniec listy.
+		\item Usuwanie elementu z listy wymaga 2 dostępów pisarza (dla 2 sąsiednich elementów - poprzednika i usuwanego).
+		\item Odczytywanie polega na przeiterowanie się po liście aż odnajdzie się pasujący element (wymaga dostępów czytelnika dla obecnie czytanego elementu).
 		\item Projekt zostanie wykonany w języku C++ (standard C++17).
-        \item Maksymalna liczba krotek jest stała - \texttt{MAX\_TUPLES\_COUNT}.
-		\item Na początku obszaru pamięci współdzielonej zostaną umieszczone dwie tablice: jedna będzie zawierała mapowanie obszaru pamięci, co pozwoli na szybkie znajdowanie wolnych miejsc na nowe krotki, druga będzie zawierała mapowanie tablicy semaforów i pomoże znaleźć wolny semafor, na którym proces będzie mógł się zawiesić.
-		\item Tablica semaforów, która zostanie użyta przez bibliotekę będzie zawierać 256 pól, z czego pierwsze cztery zostaną użyte do synchronizacji dostępu do obszarów współdzielonych, natomiast pozostałe będą mogły służyć procesom do zawieszenia się w czasie oczekiwania na krotkę pasującą do wyrażenia.
-		\item W systemie będzie obecny demon serwisowy, którego zadaniem jest inicjalizacja tablicy semaforów oraz obszaru pamięci współdzielonej. Będzie on także wybudzał procesy po pojawieniu się nowej krotki w celu sprawdzenia, czy warunek oczekiwania został spełniony.
-		\item Obszar pamięci na krotki zawierał nagłówek określający ilość elementów krotki i typy jej elementów + ich offsety, wartości elementów stanowią resztę obszaru.
+		\item Pamięć współdzielona oraz semafory zostaną zrealizowane według standardu POSIX.
+		\item Maksymalna liczba krotek jest stała - \texttt{MAX\_TUPLES\_COUNT}.
+		\item Obszar pamięci na krotki będzie zawierał nagłówek określający ilość elementów krotki i typy jej elementów, a także wartości przesunięć względem początkowego adresu krotki. Wartości elementów będą stanowiły resztę obszaru.
 	\end{enumerate}
 
 	\subsection{API}
@@ -45,14 +49,14 @@
 		\item \texttt{std::optional<Tuple> input(std::string expr, unsigned int timeout)}
 		\item \texttt{std::optional<Tuple> read(std::string expr, unsigned int timeout)}
 	\end{itemize}
-	Klasa \texttt{Tuple} będzie w stanie przedstawić swoją zawartość w dwojaki sposób: w formie wygodnej dla użytkownika oraz w postaci sformatowej do zapisu w obszarze pamięci współdzielonej. 
+	Klasa \texttt{Tuple} będzie w stanie przedstawić swoją zawartość w dwojaki sposób: w formie wygodnej dla użytkownika oraz w postaci sformatowej do zapisu w obszarze pamięci współdzielonej.
 	Wyrażenia przekazywane przez metody \texttt{input} oraz \texttt{read} zostaną przeanalizowane przez klasę \texttt{ExpressionParser} i posłużą do zbadania zawartości pamięci współdzielonej.
-	
+
 	\subsection{Obsługa błędów}
 	Wszystkie sytuacje błędne będą sygnalizowane poprzez wartości zwracane z funkcji.
 	Metoda \texttt{output} może zakończyć się na dwa sposoby: sukcesem lub porażką z powodu braku pamięci na nową krótkę. Sytuacje te zostaną zmapowane na wartości liczbowe i zwrócone do użytkownika.
 	Metody \texttt{input} oraz \texttt{read} zwrócą krotkę, jeśli istnieje lub nic jeśli krotka pasująca do wyrażenia nie znajdzie się w buforze przez upłynięciem podanego czasu. Klasa \texttt{std::optional} z biblioteki standardowej pozwoli na bezpieczne obsłużenie obu sytuacji.
-	
-	
-	
+
+
+
 \end{document}
