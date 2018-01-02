@@ -11,6 +11,7 @@ class Tuple
 public:
 	Tuple() = default;
 	Tuple(std::vector<StringOrNumber> values);
+	Tuple(unsigned char* rawTuple);
 
 	void print();
 	std::unique_ptr<unsigned char> rawFormat();
@@ -18,6 +19,9 @@ public:
 
 private:
 	std::vector<StringOrNumber> values;
+
+	static constexpr unsigned char STRING_T = 0x0F;
+	static constexpr unsigned char NUMBER_T = 0xF0;
 };
 
 #endif
