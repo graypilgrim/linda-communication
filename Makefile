@@ -6,6 +6,7 @@ SOURCES = \
 		src/StringOrNumber.cpp \
 		src/Tuple.cpp \
 		src/main.cpp \
+		src/Buffer.cpp \
 
 OBJECTS=$(SOURCES:.cpp=.o)
 

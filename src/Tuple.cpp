@@ -25,7 +25,7 @@ void Tuple::print()
 
 std::unique_ptr<unsigned char> Tuple::rawFormat()
 {
-
+	return {};
 }
 
 void Tuple::append(StringOrNumber value)
