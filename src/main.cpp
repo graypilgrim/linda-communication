@@ -1,13 +1,20 @@
 #include <iostream>
 
-#include "Tuple.hpp"
+#include "QueryLexer.hpp"
 
 int main() {
-	Tuple t{{1, 2, 3, "ala", "ma", "kota"}};
-	t.print();
+	// Tuple t{{1, 2, 3, "ala", "ma", "kota"}};
+	// t.print();
+    //
+	// auto raw = t.rawFormat();
+    //
+	// Tuple t2{raw.get()};
+	// t2.print();
 
-	auto raw = t.rawFormat();
+	auto pattern = "(integer:1, string:*, string:\"xy*\")";
+	QueryLexer ql{pattern};
+	auto ret = ql.tokenize();
 
-	Tuple t2{raw.get()};
-	t2.print();
+	for (auto &s : ret)
+		std::cout << s << std::endl;
 }

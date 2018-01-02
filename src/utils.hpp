@@ -5,4 +5,11 @@
 #define TUPLE_SIZE ELEM_SIZE - 3 * sizeof(void*)
 #define MAX_TUPLES_COUNT 4096
 
+enum class FieldType
+{
+	string,
+	number,
+	none
+};
+
 #endif

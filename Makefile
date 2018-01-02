@@ -7,6 +7,8 @@ SOURCES = \
 		src/Tuple.cpp \
 		src/main.cpp \
 		src/Buffer.cpp \
+		src/QueryLexer.cpp \
+		src/QueryParser.cpp \
 
 OBJECTS=$(SOURCES:.cpp=.o)
 
