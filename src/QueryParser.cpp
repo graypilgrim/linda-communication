@@ -10,6 +10,8 @@ QueryParser::QueryParser(const std::vector<std::string> &tokens)
 
 std::vector<QueryParser::Query> QueryParser::parse()
 {
+	it = tokens.begin();
+
 	if (*it != "(") {
 		std::cout << "Opening paranthesis expected" << std::endl;
 		return {};
@@ -74,13 +76,25 @@ void QueryParser::operators()
 
 void QueryParser::value()
 {
-	if (*it == "*") {
+	if (*it == "*" || *it == "\"*\"") {
 		queries.emplace_back(currentFieldType, [](const StringOrNumber &son){return true;});
-		return;
+		++it;
+	} else if (currentFieldType == FieldType::number) {
+		number();
+	} else {
+		string();
 	}
 
-	if (currentFieldType == FieldType::number) {
-		number();
+	if (*it == ",") {
+		currentFieldType = FieldType::none;
+		++it;
+		type();
+	} else if (*it == ")") {
+		return;
+	} else {
+		std::cout << "Invalid symbol. Expected: coma or paranthesis, received: " << *it << std::endl;
+		queries.clear();
+		return;
 	}
 }
 
@@ -136,4 +150,91 @@ void QueryParser::number()
 			return false;});
 		break;
 	}
+
+	++it;
+}
+
+void QueryParser::string()
+{
+	if (it->size() < 2) {
+		std::cout << "Error. Provided string has invalid format: " << *it << std::endl;
+		queries.clear();
+		return;
+	}
+
+	auto pattern = std::string(*it, 1, it->size() - 2);
+
+	switch (currentOperatorType)
+	{
+	case OperatorType::equal:
+		queries.emplace_back(currentFieldType, [pattern](const StringOrNumber &son){
+			if (son.getType() == FieldType::string)
+				return QueryParser::compareStrings(son.getString(), pattern) == 0;
+			return false;
+		});
+		break;
+
+	case OperatorType::greater_or_equal:
+		queries.emplace_back(currentFieldType, [pattern](const StringOrNumber &son){
+			if (son.getType() == FieldType::string)
+				return QueryParser::compareStrings(son.getString(), pattern) >= 0;
+			return false;
+		});
+		break;
+
+	case OperatorType::greater:
+		queries.emplace_back(currentFieldType, [pattern](const StringOrNumber &son){
+			if (son.getType() == FieldType::string)
+				return QueryParser::compareStrings(son.getString(), pattern) > 0;
+			return false;
+		});
+		break;
+
+	case OperatorType::less_or_equal:
+		queries.emplace_back(currentFieldType, [pattern](const StringOrNumber &son){
+			if (son.getType() == FieldType::string)
+				return QueryParser::compareStrings(son.getString(), pattern) <= 0;
+			return false;
+		});
+		break;
+
+	case OperatorType::less:
+		queries.emplace_back(currentFieldType, [pattern](const StringOrNumber &son){
+			if (son.getType() == FieldType::string)
+				return QueryParser::compareStrings(son.getString(), pattern) < 0;
+			return false;
+		});
+		break;
+	}
+
+	++it;
+}
+
+int QueryParser::compareStrings(const std::string &str, const std::string &pattern)
+{
+	auto strIndex = 0u;
+	auto patternIndex = 0u;
+
+	while (patternIndex < pattern.size()) {
+		if (pattern[patternIndex] == '*') {
+			++patternIndex;
+
+			if (patternIndex == pattern.size()) return 0;
+
+			auto tempStrIndex = str.size() - (pattern.size() - patternIndex);
+			if (tempStrIndex < strIndex) return 1;
+
+			strIndex = tempStrIndex;
+		}
+
+		if (pattern[patternIndex] < str[strIndex])
+			return -1;
+		else if (pattern[patternIndex] > str[strIndex])
+			return 1;
+
+		++strIndex;
+		++patternIndex;
+	}
+
+	return 0;
 }

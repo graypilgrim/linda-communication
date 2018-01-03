@@ -22,6 +22,8 @@ private:
 	void operators();
 	void value();
 	void number();
+	void string();
+	static int compareStrings(const std::string &token, const std::string &pattern);
 
 
 	enum class OperatorType {equal, greater_or_equal, greater, less_or_equal, less};
