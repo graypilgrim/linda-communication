@@ -9,11 +9,13 @@ SOURCES = \
 		src/Buffer.cpp \
 		src/QueryLexer.cpp \
 		src/QueryParser.cpp \
+		src/Elem.cpp \
+		src/sync.cpp
 
 OBJECTS=$(SOURCES:.cpp=.o)
 
 $(BINARY): $(OBJECTS)
-	$(CXX) $^ -o $@ $(LINK_FLAGS)
+	$(CXX) $^ -o $@ $(LINK_FLAGS) -lrt -pthread
 
 %.o : %.cpp
 	$(CXX) $(CXXFLAGS) $< -o $@
