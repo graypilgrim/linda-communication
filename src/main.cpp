@@ -11,7 +11,7 @@ int main() {
 	// Tuple t2{raw.get()};
 	// t2.print();
 
-	auto pattern = "(integer:1, string:*, string:\"xy*\")";
+	auto pattern = "(integer:1, string:*, string:\"xy*\", integer:<=5)";
 	QueryLexer ql{pattern};
 	auto ret = ql.tokenize();
 

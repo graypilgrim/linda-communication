@@ -38,10 +38,10 @@ void Tuple::print()
 {
 	std::cout << "(";
 	for (auto i = 0u; i < values.size(); ++i) {
-		if (values[i].getType() == StringOrNumber::Type::number)
+		if (values[i].getType() == FieldType::number)
 			std::cout << values[i].getNumber();
 
-		if (values[i].getType() == StringOrNumber::Type::string)
+		if (values[i].getType() == FieldType::string)
 			std::cout << "\"" << values[i].getString() << "\"";
 
 		if (i + 1 < values.size())
@@ -61,7 +61,7 @@ std::unique_ptr<unsigned char> Tuple::rawFormat()
 	unsigned int offset = sizeof(unsigned int) + *size * sizeof(TupleElemDescriptor);
 	for (auto i = 0u; i < values.size(); ++i) {
 		descriptors[i].offset = offset;
-		if (values[i].getType() == StringOrNumber::Type::string) {
+		if (values[i].getType() == FieldType::string) {
 			descriptors[i].type = STRING_T;
 			memcpy(rawTuple + offset, values[i].getString().c_str(), values[i].getString().size() + 1);
 			offset += values[i].getString().size() + 1;

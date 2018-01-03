@@ -17,7 +17,19 @@ public:
 	std::vector<Query> parse();
 
 private:
+	void type();
+	void colon();
+	void operators();
+	void value();
+	void number();
+
+
+	enum class OperatorType {equal, greater_or_equal, greater, less_or_equal, less};
 	std::vector<std::string> tokens;
+	std::vector<std::string>::iterator it;
+	std::vector<Query> queries;
+	FieldType currentFieldType;
+	OperatorType currentOperatorType;
 };
 
 #endif
