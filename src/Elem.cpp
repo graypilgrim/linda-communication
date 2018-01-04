@@ -64,10 +64,18 @@ void* Elem::getTupleBodyPtr()const {
 	return (char*)addr + sizeof(ElemHeader) + sizeof(sem_t) + sizeof(int);
 }
 
-void* Elem::nextElemPtr()const {
+void* Elem::getNextElemPtr()const {
 	return getAddr(header->nextElemIndex);
 }
 
-void* Elem::prevElemPtr()const {
+void* Elem::getPrevElemPtr()const {
 	return getAddr(header->prevElemIndex);
+}
+
+void *Elem::getAddr(int index) const {
+	if (index != static_cast<int>(Index::Tail)
+			&& index != static_cast<int>(Index::Invalid))
+		return (char*)shmPtr + SHM_HEADER_SIZE + ELEM_SIZE * index;
+	else
+		return nullptr;
 }

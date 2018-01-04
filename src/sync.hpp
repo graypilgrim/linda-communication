@@ -42,14 +42,7 @@ public:
 		sem_destroy(sem);
 	}
 
-	bool lock(int timeout=-1) {
-		if (timeout == -1) {
-			sem_wait(sem);
-			return true;
-		} else {
-			return timedWait(timeout);
-		}
-	}
+	bool lock(int timeout=-1);
 
 	void unlock() {
 		sem_post(sem);
@@ -63,18 +56,7 @@ private:
 	sem_t* sem;
 
 	// wrapper on sem_timedwait
-	bool timedWait(int timeout) {
-		if (timeout == -1)
-			return sem_wait(sem);
-		struct timespec ts;
-		if (clock_gettime(CLOCK_REALTIME, &ts) == -1) {
-			// TODO: consider different handling
-			std::cerr << "clock_gettime error";
-			exit(EXIT_FAILURE);
-		}
-		ts.tv_sec += timeout;
-		return sem_timedwait(sem, &ts) == 0;
-	}
+	bool timedWait(int timeout);
 
 };
 
@@ -87,15 +69,9 @@ public:
 		refCounter(reinterpret_cast<int*>((char*)addr + sizeof(sem_t))) {
 	}
 
-	void incRef() {
-		auto g = mutex.guardLock();
-		++refCounter;
-	}
+	void incRef();
 
-	void decRef() {
-		auto g = mutex.guardLock();
-		--refCounter;
-	}
+	void decRef();
 
 	Mutex getMutex() {
 		return mutex;

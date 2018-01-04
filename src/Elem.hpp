@@ -65,22 +65,9 @@ private:
 	ElemSync sync;
 
 	void* getTupleBodyPtr()const;
-	void* nextElemPtr()const;
-	void* prevElemPtr()const;
-	void* getAddr(int index)const {
-		if (index != static_cast<int>(Index::Tail)
-				&& index != static_cast<int>(Index::Invalid))
-			return (char*)shmPtr + SHM_HEADER_SIZE + ELEM_SIZE * index;
-		else
-			return nullptr;
-	}
-
-	// void incRef() {
-	//	   sync.incRef();
-	// }
-	// void decRef() {
-	//	   sync.decRef();
-	// }
+	void* getNextElemPtr()const;
+	void* getPrevElemPtr()const;
+	void* getAddr(int index)const;
 
 };
 
