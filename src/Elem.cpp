@@ -24,10 +24,14 @@ Elem::~Elem() {
 
 void Elem::next() {
 	auto guard = sync.getMutex().guardLock();
+	if (header->nextElemIndex == static_cast<int>(Index::Tail)) {
+		// TODO: implement waiting for new elements here
+		assert(0);
+	}
 	*this = Elem(shmPtr, header->nextElemIndex);
 }
 
-std::optional<Tuple> Elem::read(const QueryParser::Query& query) {
+std::optional<Tuple> Elem::read(const QueryVec& tuple) {
 	// TODO: implement sometching like this:
 	// tuple = Tuple::fromAddr(tupleBodyPtr)
 	// if (query.match(tuple)) {
@@ -36,7 +40,7 @@ std::optional<Tuple> Elem::read(const QueryParser::Query& query) {
 	return std::nullopt;
 }
 
-std::optional<Tuple> Elem::take(const QueryParser::Query& query) {
+std::optional<Tuple> Elem::take(const QueryVec& tuple) {
 	// TODO: implement sometching similar to read.
 	// The only difference should be that this method changes status to Zombie.
 

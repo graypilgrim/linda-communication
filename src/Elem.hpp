@@ -2,8 +2,8 @@
 #define ELEM_HPP
 
 #include "sync.hpp"
-#include "QueryParser.hpp"
 #include "Tuple.hpp"
+#include "QueryParser.hpp"
 
 // special index values for Elem
 enum class Index : int {
@@ -49,8 +49,8 @@ public:
 	// move to the next block
 	void next();
 
-	std::optional<Tuple> read(const QueryParser::Query&);
-	std::optional<Tuple> take(const QueryParser::Query&);
+	std::optional<Tuple> read(const QueryVec&);
+	std::optional<Tuple> take(const QueryVec&);
 
 	// Elem should be locked before execution
 	void setNextElem(const Elem&);

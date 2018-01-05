@@ -46,9 +46,13 @@ private:
 	/*
 	 * Returns Elem with status Valid
 	 * or nullptr when failed.
-	 * Returned Elem has acquired access.
+	 * Returned Elem is locked.
 	 */
 	Elem findFreeBlock();
+
+	// Implementation of input and read methods.
+	std::optional<Tuple> inputReadImpl(const std::string &query,
+			unsigned int timeout, bool deleteTuple);
 };
 
 #endif

@@ -1,5 +1,4 @@
 #include "Tuple.hpp"
-
 #include "utils.hpp"
 
 #include <iostream>
@@ -79,4 +78,16 @@ std::unique_ptr<unsigned char> Tuple::rawFormat()
 void Tuple::append(StringOrNumber value)
 {
 	values.emplace_back(std::move(value));
+}
+
+bool Tuple::match(const QueryVec& queries) {
+	if (queries.size() != values.size())
+		return false;
+
+	// TODO: consider using boost::combine
+	for (auto [query, value] = make_pair(queries.begin(), values.begin()); query!=queries.end() ; ++query, ++value) {
+		if (!query->second(*value))
+			return false;
+	}
+	return true;
 }

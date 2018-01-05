@@ -9,12 +9,14 @@
 #include <utility>
 #include <functional>
 
+using Query = std::pair<FieldType, std::function<bool(const StringOrNumber &son)>>;
+using QueryVec = std::vector<Query>;
+
 class QueryParser
 {
 public:
-	using Query = std::pair<FieldType, std::function<bool(const StringOrNumber &son)>>;
 	QueryParser(const std::vector<std::string> &tokens);
-	std::vector<Query> parse();
+	QueryVec parse();
 
 private:
 	void type();
@@ -29,7 +31,7 @@ private:
 	enum class OperatorType {equal, greater_or_equal, greater, less_or_equal, less};
 	std::vector<std::string> tokens;
 	std::vector<std::string>::iterator it;
-	std::vector<Query> queries;
+	QueryVec queries;
 	FieldType currentFieldType;
 	OperatorType currentOperatorType;
 };

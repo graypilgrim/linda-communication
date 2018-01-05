@@ -2,6 +2,8 @@
 #define TUPLE_HPP
 
 #include "StringOrNumber.hpp"
+#include "utils.hpp"
+#include "QueryParser.hpp"
 
 #include <vector>
 #include <memory>
@@ -16,6 +18,7 @@ public:
 	void print();
 	std::unique_ptr<unsigned char> rawFormat();
 	void append(StringOrNumber value);
+	bool match(const QueryVec&);
 
 private:
 	std::vector<StringOrNumber> values;
