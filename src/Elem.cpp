@@ -23,57 +23,57 @@ Elem::~Elem() {
 }
 
 void Elem::next() {
+	assertValid();
+	tryDelete();
+
 	auto guard = sync.getMutex().guardLock();
 	if (header->nextElemIndex == static_cast<int>(Index::Tail)) {
 		// TODO: implement waiting for new elements here
+		// remember unlocking this element, so that anythin can be added.
 		assert(0);
 	}
 	*this = Elem(shmPtr, header->nextElemIndex);
 }
 
-std::optional<Tuple> Elem::read(const QueryVec& tuple) {
+std::optional<Tuple> Elem::read(const QueryVec& query) {
+	assertValid();
 	// TODO: implement sometching like this:
 	// tuple = Tuple::fromAddr(tupleBodyPtr)
-	// if (query.match(tuple)) {
+	// if (tuple.match(query)) {
 	//	   return tuple;
 	// }
 	return std::nullopt;
 }
 
-std::optional<Tuple> Elem::take(const QueryVec& tuple) {
+std::optional<Tuple> Elem::take(const QueryVec& query) {
+	assertValid();
+	lock();
+	assert(header->status != static_cast<int>(Status::Free));
+	if (header->status == static_cast<int>(Status::Zombie)) {
+		// this tuple is already taken
+		return std::nullopt;
+	}
 	// TODO: implement sometching similar to read.
 	// The only difference should be that this method changes status to Zombie.
 
-	lock();
-	assert(header->status != static_cast<int>(Status::Free));
-	if (header->status == static_cast<int>(Status::Zombie))
-		return std::nullopt;
-	// tuple = Tuple::fromAddr(tupleBodyPtr)
-	// if (query.match(tuple)) {
-	//	   return tuple;
-	// }
 	unlock();
+	tryDelete();
 	return std::nullopt;
 }
 
-void Elem::setNextElem(const Elem& e) {
-	header->nextElemIndex = e.getIndex();
+void Elem::setNextIndex(const int& i) {
+	assertValid();
+	header->nextElemIndex = i;
 }
 
-void Elem::setPrevElem(const Elem& e) {
-	header->prevElemIndex = e.getIndex();
+void Elem::setPrevIndex(const int& i) {
+	assertValid();
+	header->prevElemIndex = i;
 }
 
 void* Elem::getTupleBodyPtr()const {
+	assertValid();
 	return (char*)addr + sizeof(ElemHeader) + sizeof(sem_t) + sizeof(int);
-}
-
-void* Elem::getNextElemPtr()const {
-	return getAddr(header->nextElemIndex);
-}
-
-void* Elem::getPrevElemPtr()const {
-	return getAddr(header->prevElemIndex);
 }
 
 void *Elem::getAddr(int index) const {
@@ -82,4 +82,21 @@ void *Elem::getAddr(int index) const {
 		return (char*)shmPtr + SHM_HEADER_SIZE + ELEM_SIZE * index;
 	else
 		return nullptr;
+}
+
+void Elem::tryDelete() {
+	assertValid();
+	// TODO: implement
+	// remember that 3 locks are required to delete the element
+	if (header->status == static_cast<int>(Status::Zombie)) {
+		if (sync.getRefCount() == 1) {
+			// TODO
+		}
+	}
+}
+
+void Elem::assertValid()const {
+	assert(addr != nullptr);
+	assert(getIndex() != static_cast<int>(Index::Tail));
+	assert(getIndex() != static_cast<int>(Index::Invalid));
 }

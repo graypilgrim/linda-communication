@@ -60,6 +60,9 @@ private:
 
 };
 
+/*
+ * A mutex and integer - ref counter.
+ */
 class ElemSync {
 public:
 	ElemSync():refCounter(nullptr) {
@@ -75,6 +78,10 @@ public:
 
 	Mutex getMutex() {
 		return mutex;
+	}
+
+	int getRefCount() {
+		return *refCounter;
 	}
 
 

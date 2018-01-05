@@ -40,12 +40,13 @@ public:
 private:
 	int shmFd;
 	void* shmPtr;
+
 	Elem getFirstElem();
 	Elem getLastElem();
 
 	/*
 	 * Returns Elem with status Valid
-	 * or nullptr when failed.
+	 * or with index Invalid if there is no free block.
 	 * Returned Elem is locked.
 	 */
 	Elem findFreeBlock();

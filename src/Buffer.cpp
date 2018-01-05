@@ -18,29 +18,67 @@ Buffer::Buffer(const std::string &shmName)
 
 Buffer::OutputResult Buffer::output(const Tuple &tuple)
 {
-	auto last = getLastElem();
 	Elem freeBlock = findFreeBlock();
-	if (freeBlock.getIndex() != static_cast<int>(Index::Invalid)) {
-		ShmHeader shmHeader(shmPtr);
-
-		while (true) {
-			last.lock();
-			shmHeader.tailLock.lock();
-
-			last.setNextElem(freeBlock);
-			freeBlock.setPrevElem(last);
-			*shmHeader.tailIndex = freeBlock.getIndex();
-			// TODO:
-			// tuple.writeToAddress(freeBlock->getTupleBodyPtr());
-
-		}
-		last.unlock();
-		shmHeader.tailLock.unlock();
-		freeBlock.unlock();
-		return OutputResult::success;
-	} else {
+	if (freeBlock.getIndex() == static_cast<int>(Index::Invalid))
 		return OutputResult::out_of_memory;
+
+	ShmHeader shmHeader(shmPtr);
+
+	/* Acquire 2 locks: last element and tail pointer.
+		* This is not an active waiting.
+		* When adding first element, we need head lock instead of last element lock,
+		* because it doesn't exist.
+		* */
+	bool addingFirstElement;
+	Elem last = getLastElem();
+	while (true) {
+		addingFirstElement = false;
+		if (last.getIndex() == static_cast<int>(Index::Tail)) {
+			// adding first element
+			shmHeader.headLock.lock();
+
+			// check if someone didn't add first element in the midtime.
+			if (*shmHeader.headIndex == static_cast<int>(Index::Tail)) {
+				addingFirstElement = true;
+				break;
+			}
+
+			// someone added element in midtime
+			last = getLastElem();
+			continue;
+		}
+		last.lock();
+		if (last.getNextIndex() == static_cast<int>(Index::Tail))
+			break;
+
+		// someone added element in midtime
+		last.unlock();
+		last = getLastElem();
+		continue;
 	}
+	shmHeader.tailLock.lock();
+
+	// safely add element to list (create connections)
+	if (addingFirstElement) {
+		*shmHeader.headIndex = freeBlock.getIndex();
+		freeBlock.setPrevIndex(*shmHeader.headIndex);
+	} else {
+		last.setNextIndex(freeBlock.getIndex());
+		freeBlock.setPrevIndex(last.getIndex());
+	}
+	// TODO: tuple.writeToAddress(freeBlock->getTupleBodyPtr());
+	*shmHeader.tailIndex = freeBlock.getIndex();
+
+	// unlock everything
+	if (addingFirstElement) {
+		shmHeader.headLock.unlock();
+	} else {
+		last.unlock();
+	}
+	shmHeader.tailLock.unlock();
+	freeBlock.unlock();
+
+	return OutputResult::success;
 }
 
 std::optional<Tuple> Buffer::input(const std::string &query, unsigned int timeout) {
@@ -66,7 +104,7 @@ Elem Buffer::getLastElem()
 }
 
 Elem Buffer::findFreeBlock() {
-	// TODO: implement remembering:
+	// TODO: implement remembering following 2 things:
 	// freeBlock.getSync().lock();
 	// freeBlock.setNextIndex(Index::Tail);
 	return Elem(shmPtr, static_cast<int>(Index::Invalid));
@@ -80,6 +118,7 @@ std::optional<Tuple> Buffer::inputReadImpl(const std::string &query,
 	auto queries = qp.parse();
 
 	// TODO: implement timeout
+	// consider adding argument to the Elem::next() method.
 	Elem cur = getFirstElem();
 	while (true) {
 		if (deleteTuple) {
@@ -89,7 +128,6 @@ std::optional<Tuple> Buffer::inputReadImpl(const std::string &query,
 			if (auto result = cur.read(queries))
 				return result.value();
 		}
-		// TODO: timeout may be passed as argument of the next method
 		cur.next();
 	}
 	return std::nullopt;

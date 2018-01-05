@@ -29,22 +29,17 @@ public:
 	Elem(void* shmPtr, int index);
 
 	// TODO: consider not deleted copy constructor for iterator-like convention
-	// I observed that they are not necessary, so I made it deleted.
+	// I observed that it is not necessary, so I made it deleted.
 	Elem(const Elem&) = delete;
 	// Elem& operator=(const Elem&) = delete;
 
 	~Elem();
 
-	void lock() {
-		sync.getMutex().lock();
-	}
-	void unlock() {
-		sync.getMutex().unlock();
-	}
+	void lock() { sync.getMutex().lock(); }
+	void unlock() { sync.getMutex().unlock(); }
 
-	int getIndex()const {
-		return index;
-	}
+	int getIndex()const { return index; }
+	int getNextIndex()const { return header->nextElemIndex; }
 
 	// move to the next block
 	void next();
@@ -53,21 +48,41 @@ public:
 	std::optional<Tuple> take(const QueryVec&);
 
 	// Elem should be locked before execution
-	void setNextElem(const Elem&);
-	void setPrevElem(const Elem&);
+	void setNextIndex(const int&);
+	void setPrevIndex(const int&);
 
 private:
+
+	// pointer to the global shared memory
 	void* shmPtr;
+
 	int index;
+
+	// address of the block in the shared memory
 	void* addr;
 
 	ElemHeader* header;
 	ElemSync sync;
 
 	void* getTupleBodyPtr()const;
-	void* getNextElemPtr()const;
-	void* getPrevElemPtr()const;
+
+	/*
+	 * Returns address in memory of block by index.
+	 * If index equals Index::Tail or Index::Invalid, returns null.
+	 */
 	void* getAddr(int index)const;
+
+	/*
+	 * If current element has Zombie status
+	 * and ref count is 1 (currently, only I need this element),
+	 * try deleting it (may be unsuccessfull because synchronization results).
+	 */
+	void tryDelete();
+
+	/*
+	 * Called at the beginning of some methods for avoiding bugs.
+	 */
+	void assertValid()const;
 
 };
 
