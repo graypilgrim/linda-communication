@@ -72,6 +72,15 @@ public:
 		refCounter(reinterpret_cast<int*>((char*)addr + sizeof(sem_t))) {
 	}
 
+	void init() {
+		mutex.init();
+		*refCounter = 0;
+	}
+
+	void free() {
+		mutex.free();
+	}
+
 	void incRef();
 
 	void decRef();

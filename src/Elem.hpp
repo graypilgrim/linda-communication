@@ -26,7 +26,7 @@ class Elem {
 	};
 
 public:
-	Elem(void* shmPtr, int index);
+	Elem(char* shmPtr, int index, bool initialized=true);
 
 	// TODO: consider not deleted copy constructor for iterator-like convention
 	// I observed that it is not necessary, so I made it deleted.
@@ -35,13 +35,16 @@ public:
 
 	~Elem();
 
+	void init();
+	void free();
+
 	void lock() { sync.getMutex().lock(); }
 	void unlock() { sync.getMutex().unlock(); }
 
 	int getIndex()const { return index; }
 	int getNextIndex()const { return header->nextElemIndex; }
 
-	// move to the next block
+	// move to the next block (increment operator)
 	void next();
 
 	std::optional<Tuple> read(const QueryVec&);
@@ -51,26 +54,26 @@ public:
 	void setNextIndex(const int&);
 	void setPrevIndex(const int&);
 
+	char* getTupleBodyPtr()const;
+
 private:
 
 	// pointer to the global shared memory
-	void* shmPtr;
+	char* shmPtr;
 
 	int index;
 
 	// address of the block in the shared memory
-	void* addr;
+	char* addr;
 
 	ElemHeader* header;
 	ElemSync sync;
-
-	void* getTupleBodyPtr()const;
 
 	/*
 	 * Returns address in memory of block by index.
 	 * If index equals Index::Tail or Index::Invalid, returns null.
 	 */
-	void* getAddr(int index)const;
+	char* getAddr(int index)const;
 
 	/*
 	 * If current element has Zombie status

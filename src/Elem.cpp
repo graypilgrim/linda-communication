@@ -4,7 +4,7 @@
 #include <cassert>
 
 
-Elem::Elem(void* shmPtr, int index):
+Elem::Elem(char* shmPtr, int index, bool initialized):
 		shmPtr(shmPtr),
 		index(index),
 		addr(getAddr(index)) {
@@ -12,7 +12,9 @@ Elem::Elem(void* shmPtr, int index):
 		// reinterpret memory fragment under addr
 		header = reinterpret_cast<ElemHeader*>((char*)addr);
 		sync = ElemSync((char*)addr + sizeof(ElemHeader));
-		sync.incRef();
+		if (initialized) {
+			sync.incRef();
+		}
 	}
 }
 
@@ -20,6 +22,15 @@ Elem::~Elem() {
 	if (addr != nullptr) {
 		sync.decRef();
 	}
+}
+
+void Elem::init() {
+	header -> status = static_cast<int>(Status::Free);
+	sync.init();
+}
+
+void Elem::free() {
+	sync.free();
 }
 
 void Elem::next() {
@@ -71,12 +82,12 @@ void Elem::setPrevIndex(const int& i) {
 	header->prevElemIndex = i;
 }
 
-void* Elem::getTupleBodyPtr()const {
+char* Elem::getTupleBodyPtr()const {
 	assertValid();
 	return (char*)addr + sizeof(ElemHeader) + sizeof(sem_t) + sizeof(int);
 }
 
-void *Elem::getAddr(int index) const {
+char* Elem::getAddr(int index) const {
 	if (index != static_cast<int>(Index::Tail)
 			&& index != static_cast<int>(Index::Invalid))
 		return (char*)shmPtr + SHM_HEADER_SIZE + ELEM_SIZE * index;

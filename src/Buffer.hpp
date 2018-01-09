@@ -31,15 +31,27 @@ public:
 		out_of_memory
 	};
 
-	Buffer(const std::string &shmName);
+	Buffer(const std::string &shmName, bool initialized=true);
+
+	/*
+	 * Create shared memory, create all semaphores
+	 * and init all blocks (set Elem::Free status).
+	 */
+	void init();
+
+	/*
+	 * Free all resources.
+	 */
+	void destroy();
 
 	OutputResult output(const Tuple &tuple);
 	std::optional<Tuple> input(const std::string &query, unsigned int timeout);
 	std::optional<Tuple> read(const std::string &query, unsigned int timeout);
 
 private:
+	std::string shmName;
 	int shmFd;
-	void* shmPtr;
+	char* shmPtr;
 
 	Elem getFirstElem();
 	Elem getLastElem();

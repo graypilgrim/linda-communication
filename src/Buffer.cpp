@@ -8,12 +8,61 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-Buffer::Buffer(const std::string &shmName)
-{
-	// TODO: sever should create shm and all semaphores
-	shmFd = shm_open(shmName.c_str(), O_CREAT, O_RDWR);
+
+#include <stdio.h>
+#include <errno.h>
+#include <string.h>
+
+Buffer::Buffer(const std::string &shmName, bool initialized): shmName(shmName) {
+	// TODO: check what these flags do
+	auto mode = S_IRUSR | S_IWUSR | S_IWGRP | S_IRGRP | S_IWOTH | S_IROTH;
+	if (initialized) {
+		shmFd = shm_open(shmName.c_str(), O_RDWR, mode);
+	}
+}
+
+void Buffer::init() {
+	// TODO: error handling
+
+	// TODO: check what these flags do
+	auto mode = S_IRUSR | S_IWUSR | S_IWGRP | S_IRGRP | S_IWOTH | S_IROTH;
+
+	shmFd = shm_open(shmName.c_str(), O_CREAT | O_RDWR, mode);
+	std::cerr << "shm_open: " << strerror(errno) << std::endl;
 	ftruncate(shmFd, SHM_SIZE);
-	shmPtr = mmap(nullptr, SHM_SIZE, PROT_WRITE, MAP_SHARED, shmFd, 0);
+	std::cerr << "ftruncate: " << strerror(errno) << std::endl;
+	shmPtr = (char*)mmap(nullptr, SHM_SIZE, PROT_WRITE, MAP_SHARED, shmFd, 0);
+	std::cerr << "mmap: " << strerror(errno) << std::endl;
+
+	ShmHeader shmHeader(shmPtr);
+	shmHeader.headLock.init();
+	*shmHeader.headIndex = static_cast<int>(Index::Tail);
+	shmHeader.tailLock.init();
+	*shmHeader.tailIndex = static_cast<int>(Index::Tail);
+
+	for (int i = 0; i < MAX_TUPLES_COUNT ; ++i) {
+		Elem block(shmPtr, i, false);
+		block.init();
+	}
+}
+
+void Buffer::destroy() {
+	for (int i = 0; i < MAX_TUPLES_COUNT ; ++i) {
+		Elem block(shmPtr, i, false);
+		block.free();
+	}
+
+	ShmHeader shmHeader(shmPtr);
+	shmHeader.headLock.free();
+	std::cerr << "headLock.free(): " << strerror(errno) << std::endl;
+	shmHeader.tailLock.free();
+	std::cerr << "tailLock.free(): " << strerror(errno) << std::endl;
+
+	munmap(shmPtr, SHM_SIZE);
+	std::cerr << "munmap: " << strerror(errno) << std::endl;
+	close(shmFd);
+	shm_unlink(shmName.c_str());
+	std::cerr << "shm_unlink: " << strerror(errno) << std::endl;
 }
 
 Buffer::OutputResult Buffer::output(const Tuple &tuple)
@@ -66,7 +115,7 @@ Buffer::OutputResult Buffer::output(const Tuple &tuple)
 		last.setNextIndex(freeBlock.getIndex());
 		freeBlock.setPrevIndex(last.getIndex());
 	}
-	// TODO: tuple.writeToAddress(freeBlock->getTupleBodyPtr());
+	tuple.write((unsigned char*)freeBlock.getTupleBodyPtr());
 	*shmHeader.tailIndex = freeBlock.getIndex();
 
 	// unlock everything

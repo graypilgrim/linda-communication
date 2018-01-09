@@ -15,18 +15,18 @@ Tuple::Tuple(std::vector<StringOrNumber> values)
 	this->values = std::move(values);
 }
 
-Tuple::Tuple(unsigned char* rawTuple)
+Tuple::Tuple(unsigned char* addr)
 {
-	auto size = *(reinterpret_cast<unsigned int *>(rawTuple));
+	auto size = *(reinterpret_cast<unsigned int *>(addr));
 
-	auto descriptors = reinterpret_cast<TupleElemDescriptor *>(rawTuple + sizeof(unsigned int));
+	auto descriptors = reinterpret_cast<TupleElemDescriptor *>(addr + sizeof(unsigned int));
 	for (auto i = 0u; i < size; ++i) {
 		if (descriptors[i].type == STRING_T) {
-			auto s = reinterpret_cast<char *>(rawTuple + descriptors[i].offset);
+			auto s = reinterpret_cast<char *>(addr + descriptors[i].offset);
 			auto val = StringOrNumber{s};
 			values.emplace_back(val);
 		} else {
-			auto n = reinterpret_cast<int*>(rawTuple + descriptors[i].offset);
+			auto n = reinterpret_cast<int*>(addr + descriptors[i].offset);
 			auto val = StringOrNumber{*n};
 			values.emplace_back(val);
 		}
@@ -49,30 +49,26 @@ void Tuple::print()
 	std::cout << ")" << std::endl;
 }
 
-std::unique_ptr<unsigned char> Tuple::rawFormat()
-{
-	auto rawTuple = new unsigned char[TUPLE_SIZE];
 
-	auto size = reinterpret_cast<unsigned int *>(rawTuple);
+void Tuple::write(unsigned char* addr)const {
+	auto size = reinterpret_cast<unsigned int *>(addr);
 	*size = values.size();
 
-	auto descriptors = reinterpret_cast<TupleElemDescriptor *>(rawTuple + sizeof(unsigned int));
+	auto descriptors = reinterpret_cast<TupleElemDescriptor *>(addr + sizeof(unsigned int));
 	unsigned int offset = sizeof(unsigned int) + *size * sizeof(TupleElemDescriptor);
 	for (auto i = 0u; i < values.size(); ++i) {
 		descriptors[i].offset = offset;
 		if (values[i].getType() == FieldType::string) {
 			descriptors[i].type = STRING_T;
-			memcpy(rawTuple + offset, values[i].getString().c_str(), values[i].getString().size() + 1);
+			memcpy(addr + offset, values[i].getString().c_str(), values[i].getString().size() + 1);
 			offset += values[i].getString().size() + 1;
 		} else {
 			descriptors[i].type = NUMBER_T;
-			auto val = reinterpret_cast<int*>(rawTuple + offset);
+			auto val = reinterpret_cast<int*>(addr + offset);
 			*val = values[i].getNumber();
 			offset += sizeof(int);
 		}
 	}
-
-	return std::unique_ptr<unsigned char>(rawTuple);
 }
 
 void Tuple::append(StringOrNumber value)
