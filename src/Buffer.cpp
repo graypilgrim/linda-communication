@@ -36,9 +36,9 @@ void Buffer::init() {
 
 	ShmHeader shmHeader(shmPtr);
 	shmHeader.headLock.init();
-	*shmHeader.headIndex = static_cast<int>(Index::Tail);
+	*shmHeader.headIndex = static_cast<int>(Index::End);
 	shmHeader.tailLock.init();
-	*shmHeader.tailIndex = static_cast<int>(Index::Tail);
+	*shmHeader.tailIndex = static_cast<int>(Index::End);
 
 	for (int i = 0; i < MAX_TUPLES_COUNT ; ++i) {
 		Elem block(shmPtr, i, false);
@@ -82,12 +82,12 @@ Buffer::OutputResult Buffer::output(const Tuple &tuple)
 	Elem last = getLastElem();
 	while (true) {
 		addingFirstElement = false;
-		if (last.getIndex() == static_cast<int>(Index::Tail)) {
+		if (last.getIndex() == static_cast<int>(Index::End)) {
 			// adding first element
 			shmHeader.headLock.lock();
 
 			// check if someone didn't add first element in the midtime.
-			if (*shmHeader.headIndex == static_cast<int>(Index::Tail)) {
+			if (*shmHeader.headIndex == static_cast<int>(Index::End)) {
 				addingFirstElement = true;
 				break;
 			}
@@ -97,7 +97,7 @@ Buffer::OutputResult Buffer::output(const Tuple &tuple)
 			continue;
 		}
 		last.lock();
-		if (last.getNextIndex() == static_cast<int>(Index::Tail))
+		if (last.getNextIndex() == static_cast<int>(Index::End))
 			break;
 
 		// someone added element in midtime

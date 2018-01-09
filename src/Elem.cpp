@@ -38,7 +38,7 @@ void Elem::next() {
 	tryDelete();
 
 	auto guard = sync.getMutex().guardLock();
-	if (header->nextElemIndex == static_cast<int>(Index::Tail)) {
+	if (header->nextElemIndex == static_cast<int>(Index::End)) {
 		// TODO: implement waiting for new elements here
 		// remember unlocking this element, so that anythin can be added.
 		assert(0);
@@ -88,7 +88,7 @@ char* Elem::getTupleBodyPtr()const {
 }
 
 char* Elem::getAddr(int index) const {
-	if (index != static_cast<int>(Index::Tail)
+	if (index != static_cast<int>(Index::End)
 			&& index != static_cast<int>(Index::Invalid))
 		return (char*)shmPtr + SHM_HEADER_SIZE + ELEM_SIZE * index;
 	else
@@ -108,6 +108,6 @@ void Elem::tryDelete() {
 
 void Elem::assertValid()const {
 	assert(addr != nullptr);
-	assert(getIndex() != static_cast<int>(Index::Tail));
+	assert(getIndex() != static_cast<int>(Index::End));
 	assert(getIndex() != static_cast<int>(Index::Invalid));
 }

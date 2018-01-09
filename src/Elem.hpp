@@ -7,7 +7,7 @@
 
 // special index values for Elem
 enum class Index : int {
-	Tail = -1,
+	End = -1,
 	Invalid = -2
 };
 
