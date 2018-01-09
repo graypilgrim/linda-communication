@@ -2,6 +2,8 @@
 #define TUPLE_HPP
 
 #include "StringOrNumber.hpp"
+#include "utils.hpp"
+#include "QueryParser.hpp"
 
 #include <vector>
 #include <memory>
@@ -11,11 +13,18 @@ class Tuple
 public:
 	Tuple() = default;
 	Tuple(std::vector<StringOrNumber> values);
-	Tuple(unsigned char* rawTuple);
+	Tuple(unsigned char* addr);
 
 	void print();
-	std::unique_ptr<unsigned char> rawFormat();
+
+	/*
+	 * Dump into memory, so that the constructor
+	 * can be layer called with the same argument.
+	 */
+	void write(unsigned char* addr)const;
+
 	void append(StringOrNumber value);
+	bool match(const QueryVec&);
 
 private:
 	std::vector<StringOrNumber> values;

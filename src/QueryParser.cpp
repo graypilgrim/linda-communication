@@ -8,7 +8,7 @@ QueryParser::QueryParser(const std::vector<std::string> &tokens)
 	: tokens(tokens), currentFieldType(FieldType::none)
 {}
 
-std::vector<QueryParser::Query> QueryParser::parse()
+QueryVec QueryParser::parse()
 {
 	it = tokens.begin();
 

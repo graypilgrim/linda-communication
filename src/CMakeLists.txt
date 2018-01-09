@@ -1,0 +1,8 @@
+add_library(Buffer Buffer.cpp)
+add_library(Elem Elem.cpp)
+add_library(QueryLexer QueryLexer.cpp)
+add_library(QueryParser QueryParser.cpp)
+add_library(StringOrNumber StringOrNumber.cpp)
+add_library(sync sync.cpp)
+add_library(Tuple Tuple.cpp)
+# add_library(utils utils.hpp)

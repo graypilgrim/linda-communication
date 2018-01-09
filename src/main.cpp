@@ -1,31 +1,52 @@
 #include <iostream>
+#include <csignal>
 
 #include "QueryLexer.hpp"
 #include "QueryParser.hpp"
+#include "Buffer.hpp"
 
-int main() {
-	// Tuple t{{1, 2, 3, "ala", "ma", "kota"}};
-	// t.print();
-    //
-	// auto raw = t.rawFormat();
-    //
-	// Tuple t2{raw.get()};
-	// t2.print();
+Buffer* buffer = nullptr;
 
-	auto pattern = "(integer:1, string:*, string:\"xy*\", integer:<=5)";
-	QueryLexer ql{pattern};
-	auto tokens = ql.tokenize();
+void signalHandler( int signum ) {
+	std:: cout << "Interrupt signal (" << signum << ") received." << std::endl;
+	buffer->destroy();
+	std::cout << "Exiting." << std::endl;
+	exit(signum);
+}
 
-	for (auto &s : tokens)
-		std::cout << s << std::endl;
+int main(int argc, char* argv[]) {
+	bool server = false;
+	std::string shmName="";
 
-	QueryParser qp{tokens};
-	auto queries = qp.parse();
+	// TODO: consider using boost program options
+	for(int i = 1; i<argc; ++i) {
+		if (std::string(argv[i]) == "-s") {
+			server = true;
+		} else {
+			if (shmName != "") {
+				std::cout << "Invalid arguments" << std::endl;
+				return 1;
+			}
+			shmName = argv[i];
+		}
+	}
+	if (shmName == "") {
+		std::cout << "Shared memory name required." << std::endl;
+		return 1;
+	}
+	std::cout << "Using shared memory: " << shmName << std::endl;
 
-	std::cout << "queries.size: " << queries.size() << std::endl;
-
-	std::cout << "integer: 4, res: " << queries[0].second(1) << std::endl;
-	std::cout << "integer: 4, res: " << queries[1].second("mango") << std::endl;
-	std::cout << "integer: 4, res: " << queries[2].second("xz") << std::endl;
-	std::cout << "integer: 4, res: " << queries[3].second(6) << std::endl;
+	if (server) {
+		std::cout << "Running in server mode." << std::endl;
+		buffer = new Buffer(shmName, false);
+		signal(SIGINT, signalHandler);
+		buffer->init();
+		std::cin.get();
+		std::cout << "Exiting." << std::endl;
+		buffer->destroy();
+	} else {
+		std::cout << "Running in client mode." << std::endl;
+		// TODO: implement - interactive console for testing
+	}
+	return 0;
 }
