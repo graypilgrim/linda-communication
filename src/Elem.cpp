@@ -4,7 +4,8 @@
 #include <cassert>
 
 
-Elem::Elem(char* shmPtr, int index, bool initialized):
+Elem::Elem(char* shmPtr, int index, bool hasRef):
+		hasRef(hasRef),
 		shmPtr(shmPtr),
 		index(index),
 		addr(getAddr(index)) {
@@ -12,14 +13,31 @@ Elem::Elem(char* shmPtr, int index, bool initialized):
 		// reinterpret memory fragment under addr
 		header = reinterpret_cast<ElemHeader*>((char*)addr);
 		sync = ElemSync((char*)addr + sizeof(ElemHeader));
-		if (initialized) {
+		if (hasRef) {
 			sync.incRef();
 		}
 	}
 }
 
+Elem::Elem(Elem&& e) {
+	*this = std::move(e);
+}
+
+Elem& Elem::operator=(Elem&& e) {
+	hasRef = e.hasRef;
+	shmPtr = e.shmPtr;
+	index = e.index;
+	addr = e.addr;
+	header = e.header;
+	sync = e.sync;
+
+	// only the new elem is responsible should sync.decRef() in destuctor
+	e.hasRef = false;
+	return *this;
+}
+
 Elem::~Elem() {
-	if (addr != nullptr) {
+	if ((addr != nullptr) && hasRef) {
 		sync.decRef();
 	}
 }
@@ -47,29 +65,16 @@ void Elem::next() {
 }
 
 std::optional<Tuple> Elem::read(const QueryVec& query) {
-	assertValid();
-	// TODO: implement sometching like this:
-	// tuple = Tuple::fromAddr(tupleBodyPtr)
-	// if (tuple.match(query)) {
-	//	   return tuple;
-	// }
-	return std::nullopt;
+	return readTakeImpl(query, false);
 }
 
 std::optional<Tuple> Elem::take(const QueryVec& query) {
-	assertValid();
-	lock();
-	assert(header->status != static_cast<int>(Status::Free));
-	if (header->status == static_cast<int>(Status::Zombie)) {
-		// this tuple is already taken
-		return std::nullopt;
-	}
-	// TODO: implement sometching similar to read.
-	// The only difference should be that this method changes status to Zombie.
+	return readTakeImpl(query, true);
+}
 
-	unlock();
-	tryDelete();
-	return std::nullopt;
+void Elem::setStatus(const Status& i) {
+	assertValid();
+	header->status = static_cast<int>(i);
 }
 
 void Elem::setNextIndex(const int& i) {
@@ -85,6 +90,37 @@ void Elem::setPrevIndex(const int& i) {
 char* Elem::getTupleBodyPtr()const {
 	assertValid();
 	return (char*)addr + sizeof(ElemHeader) + sizeof(sem_t) + sizeof(int);
+}
+
+Elem::Status Elem::getStatus()const {
+	assertValid();
+	return static_cast<Status>(header->status);
+}
+
+void Elem::print()const {
+	std::cout << "Elem at: " << (long long int)addr << ", index: " << getIndex() << std::endl;
+
+	std::cout << "\tStatus: ";
+	if (getStatus() == Elem::Status::Free){
+		std::cout << "Free" << std::endl;
+		std::cout << "\tTuple: None" << std::endl;
+	} else if (getStatus() == Elem::Status::Zombie) {
+		std::cout << "Zombie" << std::endl;
+		std::cout << "\tTuple: ";
+		Tuple t((unsigned char*)getTupleBodyPtr());
+		t.print();
+	}else {
+		assert(getStatus() == Status::Valid);
+		std::cout << "Valid" << std::endl;
+		std::cout << "\tTuple: ";
+		Tuple t((unsigned char*)getTupleBodyPtr());
+		t.print();
+	}
+
+	std::cout << "\tReferences: " << sync.getRefCount() << std::endl;
+
+	std::cout << "\tPrevIndex: " << header->prevElemIndex << std::endl;
+	std::cout << "\tNextIndex: " << header->nextElemIndex << std::endl;
 }
 
 char* Elem::getAddr(int index) const {
@@ -110,4 +146,32 @@ void Elem::assertValid()const {
 	assert(addr != nullptr);
 	assert(getIndex() != static_cast<int>(Index::End));
 	assert(getIndex() != static_cast<int>(Index::Invalid));
+}
+
+
+std::optional<Tuple> Elem::readTakeImpl(const QueryVec& query, bool take) {
+	assertValid();
+	assert(getStatus() != Status::Free);
+	if (header->status == static_cast<int>(Status::Zombie)) {
+		return std::nullopt;
+	}
+
+	Tuple tuple((unsigned char*)getTupleBodyPtr());
+	if (!tuple.match(query)) {
+		return std::nullopt;
+	}
+
+	if (take) {
+		lock();
+		if (header->status == static_cast<int>(Status::Zombie)) {
+			// this tuple haas been taken in the middletime
+			unlock();
+			return std::nullopt;
+		}
+		assert(header->status == static_cast<int>(Status::Valid));
+		header->status = static_cast<int>(Status::Zombie);
+		unlock();
+	}
+
+	return tuple;
 }

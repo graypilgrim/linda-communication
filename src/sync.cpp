@@ -24,10 +24,10 @@ bool Mutex::timedWait(int timeout) {
 
 void ElemSync::incRef() {
 	auto g = mutex.guardLock();
-	++refCounter;
+	++*refCounter;
 }
 
 void ElemSync::decRef() {
 	auto g = mutex.guardLock();
-	--refCounter;
+	--*refCounter;
 }

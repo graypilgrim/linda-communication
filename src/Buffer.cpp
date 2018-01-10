@@ -8,25 +8,28 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-
-#include <stdio.h>
 #include <errno.h>
 #include <string.h>
 
-Buffer::Buffer(const std::string &shmName, bool initialized): shmName(shmName) {
-	// TODO: check what these flags do
-	auto mode = S_IRUSR | S_IWUSR | S_IWGRP | S_IRGRP | S_IWOTH | S_IROTH;
+Buffer::Buffer(const std::string &shmName, bool initialized):
+		shmName(shmName),
+		currentAllocationIndex(0) {
 	if (initialized) {
-		shmFd = shm_open(shmName.c_str(), O_RDWR, mode);
+		// TODO: check what these flags do in this case (shm object exists)
+		// auto mode = S_IRUSR | S_IWUSR | S_IWGRP | S_IRGRP | S_IWOTH | S_IROTH;
+
+		// TODO: error handling
+		shmFd = shm_open(shmName.c_str(), O_RDWR, 0);
+		std::cerr << "shm_open: " << strerror(errno) << std::endl;
+		shmPtr = (char*)mmap(nullptr, SHM_SIZE, PROT_WRITE, MAP_SHARED, shmFd, 0);
+		std::cerr << "mmap: " << strerror(errno) << std::endl;
 	}
 }
 
 void Buffer::init() {
 	// TODO: error handling
 
-	// TODO: check what these flags do
 	auto mode = S_IRUSR | S_IWUSR | S_IWGRP | S_IRGRP | S_IWOTH | S_IROTH;
-
 	shmFd = shm_open(shmName.c_str(), O_CREAT | O_RDWR, mode);
 	std::cerr << "shm_open: " << strerror(errno) << std::endl;
 	ftruncate(shmFd, SHM_SIZE);
@@ -67,14 +70,14 @@ void Buffer::destroy() {
 
 Buffer::OutputResult Buffer::output(const Tuple &tuple)
 {
-	Elem freeBlock = findFreeBlock();
+	Elem freeBlock(findFreeBlock());
 	if (freeBlock.getIndex() == static_cast<int>(Index::Invalid))
 		return OutputResult::out_of_memory;
 
 	ShmHeader shmHeader(shmPtr);
 
 	/* Acquire 2 locks: last element and tail pointer.
-		* This is not an active waiting.
+		* Following loop is not an active waiting.
 		* When adding first element, we need head lock instead of last element lock,
 		* because it doesn't exist.
 		* */
@@ -110,12 +113,13 @@ Buffer::OutputResult Buffer::output(const Tuple &tuple)
 	// safely add element to list (create connections)
 	if (addingFirstElement) {
 		*shmHeader.headIndex = freeBlock.getIndex();
-		freeBlock.setPrevIndex(*shmHeader.headIndex);
+		freeBlock.setPrevIndex(static_cast<int>(Index::REnd));
 	} else {
 		last.setNextIndex(freeBlock.getIndex());
 		freeBlock.setPrevIndex(last.getIndex());
 	}
 	tuple.write((unsigned char*)freeBlock.getTupleBodyPtr());
+	freeBlock.setStatus(Elem::Status::Valid);
 	*shmHeader.tailIndex = freeBlock.getIndex();
 
 	// unlock everything
@@ -130,12 +134,21 @@ Buffer::OutputResult Buffer::output(const Tuple &tuple)
 	return OutputResult::success;
 }
 
-std::optional<Tuple> Buffer::input(const std::string &query, unsigned int timeout) {
+std::optional<Tuple> Buffer::input(const std::string &query, int timeout) {
 	return inputReadImpl(query, timeout, true);
 }
 
-std::optional<Tuple> Buffer::read(const std::string &query, unsigned int timeout) {
+std::optional<Tuple> Buffer::read(const std::string &query, int timeout) {
 	return inputReadImpl(query, timeout, false);
+}
+
+void Buffer::print()const {
+	std::cout << "--------------------------" << std::endl;
+	std::cout << "Total number of blocks: " << MAX_TUPLES_COUNT << std::endl;
+	for (int i = 0; i < MAX_TUPLES_COUNT ; ++i) {
+		Elem block(shmPtr, i);
+		block.print();
+	}
 }
 
 Elem Buffer::getFirstElem()
@@ -153,10 +166,17 @@ Elem Buffer::getLastElem()
 }
 
 Elem Buffer::findFreeBlock() {
-	// TODO: implement remembering following 2 things:
-	// freeBlock.getSync().lock();
-	// freeBlock.setNextIndex(Index::Tail);
-	return Elem(shmPtr, static_cast<int>(Index::Invalid));
+	// TODO: implement some break condition(s) like timeout
+	while (true) {
+		Elem block(shmPtr, currentAllocationIndex);
+		block.lock();
+		if (block.getStatus() == Elem::Status::Free) {
+			block.setNextIndex(static_cast<int>(Index::End));
+			return std::move(block);
+		}
+		block.unlock();
+		currentAllocationIndex = (currentAllocationIndex + 1) % MAX_TUPLES_COUNT;
+	}
 }
 
 std::optional<Tuple> Buffer::inputReadImpl(const std::string &query,

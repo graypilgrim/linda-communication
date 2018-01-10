@@ -7,32 +7,31 @@
 
 // special index values for Elem
 enum class Index : int {
-	End = -1,
-	Invalid = -2
+	REnd = -1,
+	End = -2,
+	Invalid = -3,
 };
 
 struct ElemHeader {
 	int status;
-	int nextElemIndex;
 	int prevElemIndex;
+	int nextElemIndex;
 };
 
 
 class Elem {
+public:
+
 	enum class Status : uint8_t{
 		Free,
 		Valid,
 		Zombie,
 	};
 
-public:
-	Elem(char* shmPtr, int index, bool initialized=true);
-
-	// TODO: consider not deleted copy constructor for iterator-like convention
-	// I observed that it is not necessary, so I made it deleted.
-	Elem(const Elem&) = delete;
-	// Elem& operator=(const Elem&) = delete;
-
+	Elem(char* shmPtr, int index, bool hasRef=true);
+	Elem(const Elem&)=delete;
+	Elem(Elem&&);
+	Elem& operator=(Elem&&);
 	~Elem();
 
 	void init();
@@ -51,12 +50,19 @@ public:
 	std::optional<Tuple> take(const QueryVec&);
 
 	// Elem should be locked before execution
+	void setStatus(const Status&);
 	void setNextIndex(const int&);
 	void setPrevIndex(const int&);
 
 	char* getTupleBodyPtr()const;
+	Status getStatus()const;
+
+	void print()const;
 
 private:
+
+	// if should increase/decrease reference
+	bool hasRef;
 
 	// pointer to the global shared memory
 	char* shmPtr;
@@ -86,6 +92,8 @@ private:
 	 * Called at the beginning of some methods for avoiding bugs.
 	 */
 	void assertValid()const;
+
+	std::optional<Tuple> readTakeImpl(const QueryVec& query, bool take);
 
 };
 

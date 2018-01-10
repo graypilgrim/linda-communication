@@ -8,7 +8,7 @@
 #include <string>
 
 
-// TODO: consider moving other file
+// TODO: consider moving to other file
 struct ShmHeader {
 	ShmHeader(void* shmPtr):
 			headLock(shmPtr),
@@ -45,13 +45,18 @@ public:
 	void destroy();
 
 	OutputResult output(const Tuple &tuple);
-	std::optional<Tuple> input(const std::string &query, unsigned int timeout);
-	std::optional<Tuple> read(const std::string &query, unsigned int timeout);
+	std::optional<Tuple> input(const std::string &query, int timeout=-1);
+	std::optional<Tuple> read(const std::string &query, int timeout=-1);
+
+	// mothod for degugging
+	void print()const;
 
 private:
 	std::string shmName;
 	int shmFd;
 	char* shmPtr;
+
+	int currentAllocationIndex;
 
 	Elem getFirstElem();
 	Elem getLastElem();

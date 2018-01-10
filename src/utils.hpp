@@ -11,7 +11,8 @@ constexpr int ELEM_HEADER_SIZE = 4 * sizeof(int) + sizeof(sem_t);
 // the integer is a pointer to the next Elem
 constexpr int TUPLE_SIZE = ELEM_SIZE - ELEM_HEADER_SIZE;
 
-constexpr int MAX_TUPLES_COUNT = 4096;
+//constexpr int MAX_TUPLES_COUNT = 4096;
+constexpr int MAX_TUPLES_COUNT = 4;
 
 constexpr int SHM_HEADER_SIZE = 4 * sizeof(int) + 2 * sizeof(sem_t);
 

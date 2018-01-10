@@ -41,12 +41,32 @@ int main(int argc, char* argv[]) {
 		buffer = new Buffer(shmName, false);
 		signal(SIGINT, signalHandler);
 		buffer->init();
+        buffer->print();
 		std::cin.get();
+        buffer->print();
 		std::cout << "Exiting." << std::endl;
 		buffer->destroy();
 	} else {
 		std::cout << "Running in client mode." << std::endl;
-		// TODO: implement - interactive console for testing
+        Buffer buffer(shmName);
+
+		// TODO: implement interactive console for testing
+        // following is a simple test
+        buffer.print();
+        Tuple t1{{1, "ala", "ma", "kota", 3}};
+        buffer.output(t1);
+        buffer.print();
+        Tuple t2{{1, 2, 3}};
+        buffer.output(t2);
+        buffer.print();
+        std::string query="(integer:1, integer:*, integer:3)";
+        if (auto result = buffer.read(query)) {
+            std::cout << "Got:" << std::endl;
+            result.value().print();
+        } else {
+            std::cout << "Cannot get previously inserted tuple." << std::endl;
+        }
+
 	}
 	return 0;
 }
