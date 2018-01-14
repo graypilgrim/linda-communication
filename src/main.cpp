@@ -71,7 +71,7 @@ int main(int argc, char* argv[]) {
 
         if (wait) {
             std::string query="(integer:1, integer:*, integer:3)";
-            if (auto result = buffer.read(query)) {
+            if (auto result = buffer.read(query, 4)) {
                 std::cout << "Got:" << std::endl;
                 result.value().print();
             } else {

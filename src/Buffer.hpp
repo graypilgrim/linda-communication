@@ -71,8 +71,7 @@ private:
 	Elem findFreeBlock();
 
 	// Implementation of input and read methods.
-	std::optional<Tuple> inputReadImpl(const std::string &query,
-			unsigned int timeout, bool deleteTuple);
+	std::optional<Tuple> inputReadImpl(const std::string &query, int& timeout, bool deleteTuple);
 };
 
 #endif

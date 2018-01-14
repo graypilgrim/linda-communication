@@ -52,7 +52,7 @@ void Elem::free() {
 	sync.free();
 }
 
-void Elem::next() {
+bool Elem::next(int& timeout) {
 	assertValid();
 	tryDelete();
 
@@ -64,22 +64,27 @@ void Elem::next() {
 	 * Following loop is not an active waiting.
 	 */
 	while (header->nextElemIndex == static_cast<int>(Index::End)) {
+		auto condGuard = shmHeader.cond.mutex.guardLock();
 
-		shmHeader.cond.mutex.lock();
 		if (header->nextElemIndex != static_cast<int>(Index::End)) {
 			*this = Elem(shmPtr, header->nextElemIndex);
-			return;
+			return true;
 		}
 
 		unlock();
 		std::cerr << "waiting for new" << std::endl;
-		shmHeader.cond.wait();
-		std::cerr << "waiting end" << std::endl;
-		shmHeader.cond.mutex.unlock();
+		if (!shmHeader.cond.wait(timeout)) {
+			std::cerr << "waiting timeout" << std::endl;
+			lock();
+			return false;
+		} else {
+			std::cerr << "waiting end" << std::endl;
+		}
 		lock();
 	}
 
 	*this = Elem(shmPtr, header->nextElemIndex);
+	return true;
 }
 
 std::optional<Tuple> Elem::read(const QueryVec& query) {
@@ -179,15 +184,13 @@ std::optional<Tuple> Elem::readTakeImpl(const QueryVec& query, bool take) {
 	}
 
 	if (take) {
-		lock();
+		auto guard = sync.getMutex().guardLock();
 		if (header->status == static_cast<int>(Status::Zombie)) {
 			// this tuple haas been taken in the middletime
-			unlock();
 			return std::nullopt;
 		}
 		assert(header->status == static_cast<int>(Status::Valid));
 		header->status = static_cast<int>(Status::Zombie);
-		unlock();
 	}
 
 	return tuple;

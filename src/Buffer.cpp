@@ -188,7 +188,7 @@ Elem Buffer::findFreeBlock() {
 }
 
 std::optional<Tuple> Buffer::inputReadImpl(const std::string &query,
-		unsigned int timeout, bool deleteTuple) {
+		int& timeout, bool deleteTuple) {
 	QueryLexer ql{query};
 	auto tokens = ql.tokenize();
 	QueryParser qp{tokens};
@@ -196,18 +196,20 @@ std::optional<Tuple> Buffer::inputReadImpl(const std::string &query,
 
 	ShmHeader shmHeader(shmPtr);
 
-	// TODO: implement timeout
-	// consider adding argument to the Elem::next() method.
+	// TODO: consider including other short operations times in timeout
 	Elem cur = getFirstElem();
 
 	while (cur.getIndex() == static_cast<int>(Index::End)) {
-		shmHeader.cond.mutex.lock();
+		auto shmHeaderGuard = shmHeader.cond.mutex.guardLock();
 		if (cur.getIndex() == static_cast<int>(Index::End)) {
 			std::cerr << "waiting for new" << std::endl;
-			shmHeader.cond.wait();
-			std::cerr << "waiting end" << std::endl;
+			if (!shmHeader.cond.wait(timeout)) {
+				std::cerr << "waiting timeout" << std::endl;
+				return std::nullopt;
+			} else {
+				std::cerr << "waiting end" << std::endl;
+			}
 		}
-		shmHeader.cond.mutex.unlock();
 		cur = getFirstElem();
 	}
 
@@ -219,7 +221,8 @@ std::optional<Tuple> Buffer::inputReadImpl(const std::string &query,
 			if (auto result = cur.read(queries))
 				return result.value();
 		}
-		cur.next();
+		if (!cur.next(timeout))
+			return std::nullopt;
 	}
 	return std::nullopt;
 }

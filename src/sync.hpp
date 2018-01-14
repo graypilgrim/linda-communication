@@ -121,7 +121,7 @@ public:
     }
 
     // precondition: mutex acquired
-    void wait(int timeout=-1);
+    bool wait(int& timeout);
 
     // precondition: mutex acquired
     void broadcast(int timeout=-1);

@@ -1,6 +1,6 @@
 #include "sync.hpp"
 
-bool timedWait(sem_t* sem, int timeout){
+bool timedWait(sem_t* sem, int& timeout){
 	if (timeout == -1) {
 		sem_wait(sem);
         return true;
@@ -12,7 +12,14 @@ bool timedWait(sem_t* sem, int timeout){
 		exit(EXIT_FAILURE);
 	}
 	ts.tv_sec += timeout;
-	return sem_timedwait(sem, &ts) == 0;
+
+    // TODO: decrease timeout here
+    // struct timespec start, finish;
+    // clock_gettime(CLOCK_REALTIME, &start);
+	bool ret = (sem_timedwait(sem, &ts) == 0);
+    // clock_gettime(CLOCK_REALTIME, &finish);
+    // timeout -= (finish.tv_sec - start.tv_sec);
+    return ret;
 }
 
 bool Mutex::lock(int timeout) {
@@ -35,7 +42,7 @@ void ElemSync::decRef() {
 	--*refCounter;
 }
 
-void ConditionVariable::wait(int timeout) {
+bool ConditionVariable::wait(int& timeout) {
     ++*waitersCount;
 
     mutex.unlock();
@@ -44,10 +51,11 @@ void ConditionVariable::wait(int timeout) {
     if (!timedWait(sem, timeout)) {
         mutex.lock();
         --*waitersCount;
-        mutex.unlock();
+        return false;
     }
 
     mutex.lock();
+    return true;
 }
 
 void ConditionVariable::broadcast(int timeout) {
