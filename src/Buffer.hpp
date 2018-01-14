@@ -14,12 +14,14 @@ struct ShmHeader {
 			headLock(shmPtr),
 			headIndex(reinterpret_cast<int*>((char*)shmPtr + sizeof(sem_t))),
 			tailLock((char*)shmPtr + sizeof(sem_t) + sizeof(int)),
-			tailIndex(reinterpret_cast<int*>((char*)shmPtr + sizeof(int) + 2 * sizeof(sem_t))) {
+			tailIndex(reinterpret_cast<int*>((char*)shmPtr + sizeof(int) + 2 * sizeof(sem_t))),
+			cond(reinterpret_cast<int*>((char*)shmPtr + 2* sizeof(int) + 2 * sizeof(sem_t))) {
 	}
 	Mutex headLock;
 	int* headIndex;
 	Mutex tailLock;
 	int* tailIndex;
+	ConditionVariable cond;
 };
 
 

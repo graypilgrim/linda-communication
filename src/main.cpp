@@ -16,12 +16,18 @@ void signalHandler( int signum ) {
 
 int main(int argc, char* argv[]) {
 	bool server = false;
+	bool addElements = false;
+	bool wait = false;
 	std::string shmName="";
 
 	// TODO: consider using boost program options
 	for(int i = 1; i<argc; ++i) {
 		if (std::string(argv[i]) == "-s") {
 			server = true;
+        } else if (std::string(argv[i]) == "-a") {
+			addElements = true;
+        } else if (std::string(argv[i]) == "-w") {
+			wait = true;
 		} else {
 			if (shmName != "") {
 				std::cout << "Invalid arguments" << std::endl;
@@ -53,18 +59,24 @@ int main(int argc, char* argv[]) {
 		// TODO: implement interactive console for testing
         // following is a simple test
         buffer.print();
-        Tuple t1{{1, "ala", "ma", "kota", 3}};
-        buffer.output(t1);
-        buffer.print();
-        Tuple t2{{1, 2, 3}};
-        buffer.output(t2);
-        buffer.print();
-        std::string query="(integer:1, integer:*, integer:3)";
-        if (auto result = buffer.read(query)) {
-            std::cout << "Got:" << std::endl;
-            result.value().print();
-        } else {
-            std::cout << "Cannot get previously inserted tuple." << std::endl;
+
+        if (addElements) {
+            Tuple t1{{1, "ala", "ma", "kota", 3}};
+            buffer.output(t1);
+            buffer.print();
+            Tuple t2{{1, 2, 3}};
+            buffer.output(t2);
+            buffer.print();
+        }
+
+        if (wait) {
+            std::string query="(integer:1, integer:*, integer:3)";
+            if (auto result = buffer.read(query)) {
+                std::cout << "Got:" << std::endl;
+                result.value().print();
+            } else {
+                std::cout << "Cannot get previously inserted tuple." << std::endl;
+            }
         }
 
 	}

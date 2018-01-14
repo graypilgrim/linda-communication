@@ -1,4 +1,5 @@
 #include "Elem.hpp"
+#include "Buffer.hpp"
 #include "utils.hpp"
 
 #include <cassert>
@@ -55,12 +56,29 @@ void Elem::next() {
 	assertValid();
 	tryDelete();
 
+	ShmHeader shmHeader(shmPtr);
+
 	auto guard = sync.getMutex().guardLock();
-	if (header->nextElemIndex == static_cast<int>(Index::End)) {
-		// TODO: implement waiting for new elements here
-		// remember unlocking this element, so that anythin can be added.
-		assert(0);
+
+	/*
+	 * Following loop is not an active waiting.
+	 */
+	while (header->nextElemIndex == static_cast<int>(Index::End)) {
+
+		shmHeader.cond.mutex.lock();
+		if (header->nextElemIndex != static_cast<int>(Index::End)) {
+			*this = Elem(shmPtr, header->nextElemIndex);
+			return;
+		}
+
+		unlock();
+		std::cerr << "waiting for new" << std::endl;
+		shmHeader.cond.wait();
+		std::cerr << "waiting end" << std::endl;
+		shmHeader.cond.mutex.unlock();
+		lock();
 	}
+
 	*this = Elem(shmPtr, header->nextElemIndex);
 }
 
@@ -135,11 +153,10 @@ void Elem::tryDelete() {
 	assertValid();
 	// TODO: implement
 	// remember that 3 locks are required to delete the element
-	if (header->status == static_cast<int>(Status::Zombie)) {
-		if (sync.getRefCount() == 1) {
-			// TODO
-		}
-	}
+	// if (header->status == static_cast<int>(Status::Zombie)) {
+	// 	if (sync.getRefCount() == 1) {
+	// 	}
+	// }
 }
 
 void Elem::assertValid()const {

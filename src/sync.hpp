@@ -58,9 +58,6 @@ public:
 private:
 	sem_t* sem;
 
-	// wrapper on sem_timedwait
-	bool timedWait(int timeout);
-
 };
 
 /*
@@ -96,10 +93,45 @@ public:
 		return *refCounter;
 	}
 
-
 private:
 	Mutex mutex;
 	int* refCounter;
+
+};
+
+
+class ConditionVariable {
+public:
+
+    ConditionVariable(void* addr):
+        mutex(addr),
+        waitersCount(reinterpret_cast<int*>((char*) addr + sizeof(sem_t))),
+        sem(reinterpret_cast<sem_t*>((char*) addr + sizeof(sem_t) + sizeof(int))) {
+    }
+
+    void init() {
+        mutex.init();
+		sem_init(sem, 1, 0);
+        *waitersCount = 0;
+    }
+
+    void free() {
+        mutex.free();
+        sem_destroy(sem);
+    }
+
+    // precondition: mutex acquired
+    void wait(int timeout=-1);
+
+    // precondition: mutex acquired
+    void broadcast(int timeout=-1);
+
+    Mutex mutex;
+
+private:
+    int* waitersCount;
+	sem_t* sem;
+
 };
 
 

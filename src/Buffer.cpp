@@ -42,6 +42,7 @@ void Buffer::init() {
 	*shmHeader.headIndex = static_cast<int>(Index::End);
 	shmHeader.tailLock.init();
 	*shmHeader.tailIndex = static_cast<int>(Index::End);
+	shmHeader.cond.init();
 
 	for (int i = 0; i < MAX_TUPLES_COUNT ; ++i) {
 		Elem block(shmPtr, i, false);
@@ -60,6 +61,8 @@ void Buffer::destroy() {
 	std::cerr << "headLock.free(): " << strerror(errno) << std::endl;
 	shmHeader.tailLock.free();
 	std::cerr << "tailLock.free(): " << strerror(errno) << std::endl;
+	shmHeader.cond.free();
+	std::cerr << "cond.free(): " << strerror(errno) << std::endl;
 
 	munmap(shmPtr, SHM_SIZE);
 	std::cerr << "munmap: " << strerror(errno) << std::endl;
@@ -131,6 +134,11 @@ Buffer::OutputResult Buffer::output(const Tuple &tuple)
 	shmHeader.tailLock.unlock();
 	freeBlock.unlock();
 
+	shmHeader.cond.mutex.lock();
+	std::cerr << "broadcast" << std::endl;
+	shmHeader.cond.broadcast();
+	shmHeader.cond.mutex.unlock();
+
 	return OutputResult::success;
 }
 
@@ -186,9 +194,23 @@ std::optional<Tuple> Buffer::inputReadImpl(const std::string &query,
 	QueryParser qp{tokens};
 	auto queries = qp.parse();
 
+	ShmHeader shmHeader(shmPtr);
+
 	// TODO: implement timeout
 	// consider adding argument to the Elem::next() method.
 	Elem cur = getFirstElem();
+
+	while (cur.getIndex() == static_cast<int>(Index::End)) {
+		shmHeader.cond.mutex.lock();
+		if (cur.getIndex() == static_cast<int>(Index::End)) {
+			std::cerr << "waiting for new" << std::endl;
+			shmHeader.cond.wait();
+			std::cerr << "waiting end" << std::endl;
+		}
+		shmHeader.cond.mutex.unlock();
+		cur = getFirstElem();
+	}
+
 	while (true) {
 		if (deleteTuple) {
 			if (auto result = cur.take(queries))
