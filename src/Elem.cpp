@@ -52,7 +52,7 @@ void Elem::free() {
 	sync.free();
 }
 
-bool Elem::next(int& timeout) {
+bool Elem::next(double& timeout) {
 	assertValid();
 	tryDelete();
 

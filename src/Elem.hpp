@@ -44,7 +44,7 @@ public:
 	int getNextIndex()const { return header->nextElemIndex; }
 
 	// move to the next block (increment operator)
-	bool next(int& timeout);
+	bool next(double& timeout);
 
 	std::optional<Tuple> read(const QueryVec&);
 	std::optional<Tuple> take(const QueryVec&);

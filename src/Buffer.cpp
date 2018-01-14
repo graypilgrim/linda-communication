@@ -142,11 +142,11 @@ Buffer::OutputResult Buffer::output(const Tuple &tuple)
 	return OutputResult::success;
 }
 
-std::optional<Tuple> Buffer::input(const std::string &query, int timeout) {
+std::optional<Tuple> Buffer::input(const std::string &query, double timeout) {
 	return inputReadImpl(query, timeout, true);
 }
 
-std::optional<Tuple> Buffer::read(const std::string &query, int timeout) {
+std::optional<Tuple> Buffer::read(const std::string &query, double timeout) {
 	return inputReadImpl(query, timeout, false);
 }
 
@@ -188,7 +188,7 @@ Elem Buffer::findFreeBlock() {
 }
 
 std::optional<Tuple> Buffer::inputReadImpl(const std::string &query,
-		int& timeout, bool deleteTuple) {
+		double& timeout, bool deleteTuple) {
 	QueryLexer ql{query};
 	auto tokens = ql.tokenize();
 	QueryParser qp{tokens};

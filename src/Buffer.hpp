@@ -47,8 +47,8 @@ public:
 	void destroy();
 
 	OutputResult output(const Tuple &tuple);
-	std::optional<Tuple> input(const std::string &query, int timeout=-1);
-	std::optional<Tuple> read(const std::string &query, int timeout=-1);
+	std::optional<Tuple> input(const std::string &query, double timeout=-1);
+	std::optional<Tuple> read(const std::string &query, double timeout=-1);
 
 	// mothod for degugging
 	void print()const;
@@ -71,7 +71,7 @@ private:
 	Elem findFreeBlock();
 
 	// Implementation of input and read methods.
-	std::optional<Tuple> inputReadImpl(const std::string &query, int& timeout, bool deleteTuple);
+	std::optional<Tuple> inputReadImpl(const std::string &query, double& timeout, bool deleteTuple);
 };
 
 #endif

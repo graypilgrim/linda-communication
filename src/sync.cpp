@@ -1,6 +1,6 @@
 #include "sync.hpp"
 
-bool timedWait(sem_t* sem, int& timeout){
+bool timedWait(sem_t* sem, double& timeout){
 	if (timeout == -1) {
 		sem_wait(sem);
         return true;
@@ -14,21 +14,22 @@ bool timedWait(sem_t* sem, int& timeout){
 	ts.tv_sec += timeout;
 
     // TODO: decrease timeout here
-    // struct timespec start, finish;
-    // clock_gettime(CLOCK_REALTIME, &start);
+    struct timespec start, finish;
+    clock_gettime(CLOCK_REALTIME, &start);
 	bool ret = (sem_timedwait(sem, &ts) == 0);
-    // clock_gettime(CLOCK_REALTIME, &finish);
-    // timeout -= (finish.tv_sec - start.tv_sec);
+    clock_gettime(CLOCK_REALTIME, &finish);
+    timeout -= (finish.tv_sec - start.tv_sec);
     return ret;
 }
 
-bool Mutex::lock(int timeout) {
-	if (timeout == -1) {
-		sem_wait(sem);
-		return true;
-	} else {
-		return timedWait(sem, timeout);
-	}
+bool Mutex::lock() {
+    sem_wait(sem);
+    return true;
+	// if (timeout == -1) {
+	// 	return true;
+	// } else {
+	// 	return timedWait(sem, timeout);
+	// }
 }
 
 
@@ -42,7 +43,7 @@ void ElemSync::decRef() {
 	--*refCounter;
 }
 
-bool ConditionVariable::wait(int& timeout) {
+bool ConditionVariable::wait(double& timeout) {
     ++*waitersCount;
 
     mutex.unlock();
@@ -58,7 +59,7 @@ bool ConditionVariable::wait(int& timeout) {
     return true;
 }
 
-void ConditionVariable::broadcast(int timeout) {
+void ConditionVariable::broadcast() {
     while (*waitersCount > 0) {
         --*waitersCount;
         sem_post(sem);

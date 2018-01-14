@@ -14,8 +14,8 @@ class Mutex {
 		Mutex& m;
 		bool status;
 	public:
-		LockGuard(Mutex& m, int timeout=-1):m(m) {
-			status = m.lock(timeout);
+		LockGuard(Mutex& m):m(m) {
+			status = m.lock();
 		}
 		~LockGuard() {
 			m.unlock();
@@ -45,14 +45,14 @@ public:
 		sem_destroy(sem);
 	}
 
-	bool lock(int timeout=-1);
+	bool lock();
 
 	void unlock() {
 		sem_post(sem);
 	}
 
-	LockGuard guardLock(int timeout=-1) {
-		return LockGuard(*this, timeout);
+	LockGuard guardLock() {
+		return LockGuard(*this);
 	}
 
 private:
@@ -121,10 +121,10 @@ public:
     }
 
     // precondition: mutex acquired
-    bool wait(int& timeout);
+    bool wait(double& timeout);
 
     // precondition: mutex acquired
-    void broadcast(int timeout=-1);
+    void broadcast();
 
     Mutex mutex;
 
