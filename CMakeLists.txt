@@ -6,7 +6,7 @@ project (linda-communication)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --std=c++17")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -pedantic")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lrt -pthread -g")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -g")
 
 # Executables
 add_executable (linda-communication "${PROJECT_SOURCE_DIR}/src/main.cpp")
@@ -17,5 +17,7 @@ target_link_libraries (linda-communication QueryParser)
 target_link_libraries (linda-communication StringOrNumber)
 target_link_libraries (linda-communication sync)
 target_link_libraries (linda-communication Tuple)
+
+target_link_libraries (linda-communication rt)
 
 add_subdirectory(src)
