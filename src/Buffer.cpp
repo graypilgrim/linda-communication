@@ -21,6 +21,9 @@ Buffer::Buffer(const std::string &shmName, bool initialized):
 		// TODO: error handling
 		shmFd = shm_open(shmName.c_str(), O_RDWR, 0);
 		std::cerr << "shm_open: " << strerror(errno) << std::endl;
+		if (shmFd < 0)
+			exit(errno);
+
 		shmPtr = (char*)mmap(nullptr, SHM_SIZE, PROT_WRITE, MAP_SHARED, shmFd, 0);
 		std::cerr << "mmap: " << strerror(errno) << std::endl;
 	}
@@ -32,8 +35,11 @@ void Buffer::init() {
 	auto mode = S_IRUSR | S_IWUSR | S_IWGRP | S_IRGRP | S_IWOTH | S_IROTH;
 	shmFd = shm_open(shmName.c_str(), O_CREAT | O_RDWR, mode);
 	std::cerr << "shm_open: " << strerror(errno) << std::endl;
-	ftruncate(shmFd, SHM_SIZE);
+	auto result = ftruncate(shmFd, SHM_SIZE);
 	std::cerr << "ftruncate: " << strerror(errno) << std::endl;
+	if (result < 0)
+		exit(errno);
+
 	shmPtr = (char*)mmap(nullptr, SHM_SIZE, PROT_WRITE, MAP_SHARED, shmFd, 0);
 	std::cerr << "mmap: " << strerror(errno) << std::endl;
 
