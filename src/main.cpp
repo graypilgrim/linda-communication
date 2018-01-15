@@ -4,6 +4,7 @@
 #include "QueryLexer.hpp"
 #include "QueryParser.hpp"
 #include "Buffer.hpp"
+#include "CommandLine.hpp"
 
 Buffer* buffer = nullptr;
 
@@ -15,31 +16,19 @@ void signalHandler( int signum ) {
 }
 
 int main(int argc, char* argv[]) {
-	bool server = false;
-	bool addElements = false;
-	bool wait = false;
-	std::string shmName="";
+	bool server;
+	bool addElements;
+	bool wait;
+	std::string shmName;
 
-	// TODO: consider using boost program options
-	for(int i = 1; i<argc; ++i) {
-		if (std::string(argv[i]) == "-s") {
-			server = true;
-        } else if (std::string(argv[i]) == "-a") {
-			addElements = true;
-        } else if (std::string(argv[i]) == "-w") {
-			wait = true;
-		} else {
-			if (shmName != "") {
-				std::cout << "Invalid arguments" << std::endl;
-				return 1;
-			}
-			shmName = argv[i];
-		}
-	}
-	if (shmName == "") {
-		std::cout << "Shared memory name required." << std::endl;
-		return 1;
-	}
+  CommandLine command_line(argc, argv);
+  command_line.Parse();
+
+  server = command_line.GetVariables().count("server") != 0;
+  addElements = command_line.GetVariables().count("add") != 0;
+  wait = command_line.GetVariables().count("wait") != 0;
+  shmName = command_line.GetVariables()["name"].as<string>();
+
 	std::cout << "Using shared memory: " << shmName << std::endl;
 
 	if (server) {
