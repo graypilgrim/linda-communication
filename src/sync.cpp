@@ -33,14 +33,22 @@ bool Mutex::lock() {
 }
 
 
-void ElemSync::incRef() {
-	auto g = mutex.guardLock();
-	++*refCounter;
+void ElemSync::incRef(bool sync) {
+	if (sync) {
+		auto g = mutex.guardLock();
+		++*refCounter;
+	} else {
+		++*refCounter;
+	}
 }
 
-void ElemSync::decRef() {
-	auto g = mutex.guardLock();
-	--*refCounter;
+void ElemSync::decRef(bool sync) {
+	if (sync) {
+		auto g = mutex.guardLock();
+		--*refCounter;
+	} else {
+		--*refCounter;
+	}
 }
 
 bool ConditionVariable::wait(double& timeout) {

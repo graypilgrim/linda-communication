@@ -165,14 +165,28 @@ void Buffer::print()const {
 	}
 }
 
-Elem Buffer::getFirstElem()
+void Buffer::printList()const {
+	std::cout << "--------------------------" << std::endl;
+	Elem e = getFirstElem();
+	if (e.getIndex() == static_cast<int>(Index::End)) {
+		std::cout << "<empty>" << std::endl;
+		return;
+	}
+
+	double timeout = 0.5;
+	do {
+		e.print();
+	} while(e.next(timeout));
+}
+
+Elem Buffer::getFirstElem()const
 {
 	ShmHeader shmHeader(shmPtr);
 	auto g = shmHeader.headLock.guardLock();
 	return Elem(shmPtr, *shmHeader.headIndex);
 }
 
-Elem Buffer::getLastElem()
+Elem Buffer::getLastElem()const
 {
 	ShmHeader shmHeader(shmPtr);
 	auto g = shmHeader.tailLock.guardLock();
