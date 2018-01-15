@@ -84,7 +84,7 @@ private:
 	/*
 	 * If current element has Zombie status
 	 * and ref count is 1 (currently, only I need this element),
-	 * try deleting it (may be unsuccessfull because synchronization results).
+	 * try deleting it (may be unsuccessful because synchronization results).
 	 */
 	void tryDelete();
 
