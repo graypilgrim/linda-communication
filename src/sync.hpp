@@ -7,7 +7,8 @@
 
 #include <errno.h>
 #include <string.h>
-// TODO: consider moving some methods implementation to .cpp file
+
+
 class Mutex {
 	class LockGuard {
 		Mutex& m;

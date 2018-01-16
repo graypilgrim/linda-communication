@@ -37,6 +37,7 @@ int main(int argc, char* argv[]) {
 		signal(SIGINT, signalHandler);
 		buffer->init();
         while (true) {
+            std::cout << "DUMP============================================" << std::endl;
             buffer->print();
             buffer->printList();
             std::cin.get();
@@ -53,11 +54,14 @@ int main(int argc, char* argv[]) {
 		buffer.print();
 
 		if (addElements) {
-			// Tuple t1{{1, "ala", "ma", "kota", 3}};
-			// buffer.output(t1);
-			// buffer.print();
+			Tuple t1{{1, "ala", "ma", "kota", 3}};
+			if (buffer.output(t1) == Buffer::OutputResult::out_of_memory)
+                std::cout << "out of memory" << std::endl;
+			buffer.print();
+
 			Tuple t2{{1, 2, 3}};
-			buffer.output(t2);
+			if (buffer.output(t2) == Buffer::OutputResult::out_of_memory)
+                std::cout << "out of memory" << std::endl;
 			buffer.print();
 		}
 

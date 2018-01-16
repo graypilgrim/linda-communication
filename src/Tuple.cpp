@@ -80,7 +80,6 @@ bool Tuple::match(const QueryVec& queries) {
 	if (queries.size() != values.size())
 		return false;
 
-	// TODO: consider using boost::combine
 	for (auto [query, value] = make_pair(queries.begin(), values.begin()); query!=queries.end() ; ++query, ++value) {
 		if (!query->second(*value))
 			return false;

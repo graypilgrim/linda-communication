@@ -13,7 +13,6 @@ bool timedWait(sem_t* sem, double& timeout){
 	}
 	ts.tv_sec += timeout;
 
-    // TODO: decrease timeout here
     struct timespec start, finish;
     clock_gettime(CLOCK_REALTIME, &start);
 	bool ret = (sem_timedwait(sem, &ts) == 0);

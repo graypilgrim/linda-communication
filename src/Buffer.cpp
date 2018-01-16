@@ -157,7 +157,7 @@ std::optional<Tuple> Buffer::read(const std::string &query, double timeout) {
 }
 
 void Buffer::print()const {
-	std::cout << "--------------------------" << std::endl;
+	std::cout << "All Blocks--------------------------" << std::endl;
 	std::cout << "Total number of blocks: " << MAX_TUPLES_COUNT << std::endl;
 	for (int i = 0; i < MAX_TUPLES_COUNT ; ++i) {
 		Elem block(shmPtr, i);
@@ -166,7 +166,7 @@ void Buffer::print()const {
 }
 
 void Buffer::printList()const {
-	std::cout << "--------------------------" << std::endl;
+	std::cout << "List elements--------------------------" << std::endl;
 	Elem e = getFirstElem();
 	if (e.getIndex() == static_cast<int>(Index::End)) {
 		std::cout << "<empty>" << std::endl;
@@ -194,8 +194,7 @@ Elem Buffer::getLastElem()const
 }
 
 Elem Buffer::findFreeBlock() {
-	// TODO: implement some break condition(s) like timeout
-	while (true) {
+	for (int i = 0; i < MAX_TUPLES_COUNT ; ++i) {
 		Elem block(shmPtr, currentAllocationIndex);
 		block.lock();
 		if (block.getStatus() == Elem::Status::Free) {
@@ -205,6 +204,7 @@ Elem Buffer::findFreeBlock() {
 		block.unlock();
 		currentAllocationIndex = (currentAllocationIndex + 1) % MAX_TUPLES_COUNT;
 	}
+	return Elem(shmPtr, static_cast<int>(Index::Invalid));
 }
 
 std::optional<Tuple> Buffer::inputReadImpl(const std::string &query,
