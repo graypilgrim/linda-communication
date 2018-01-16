@@ -89,13 +89,9 @@ bool Elem::next(double& timeout) {
 		}
 
 		unlock();
-		std::cerr << "waiting for new" << std::endl;
 		if (!shmHeader.cond.wait(timeout)) {
-			std::cerr << "waiting timeout" << std::endl;
 			lock();
 			return false;
-		} else {
-			std::cerr << "waiting end" << std::endl;
 		}
 		lock();
 	}

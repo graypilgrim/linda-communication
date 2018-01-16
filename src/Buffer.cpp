@@ -222,12 +222,8 @@ std::optional<Tuple> Buffer::inputReadImpl(const std::string &query,
 	while (cur.getIndex() == static_cast<int>(Index::End)) {
 		auto shmHeaderGuard = shmHeader.cond.mutex.guardLock();
 		if (cur.getIndex() == static_cast<int>(Index::End)) {
-			std::cerr << "waiting for new" << std::endl;
 			if (!shmHeader.cond.wait(timeout)) {
-				std::cerr << "waiting timeout" << std::endl;
 				return std::nullopt;
-			} else {
-				std::cerr << "waiting end" << std::endl;
 			}
 		}
 		cur = getFirstElem();

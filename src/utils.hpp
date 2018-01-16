@@ -12,7 +12,7 @@ constexpr int ELEM_HEADER_SIZE = 3 * sizeof(int) + ELEM_SYNC_SIZE;
 constexpr int TUPLE_SIZE = ELEM_SIZE - ELEM_HEADER_SIZE;
 
 //constexpr int MAX_TUPLES_COUNT = 4096;
-constexpr int MAX_TUPLES_COUNT = 4;
+constexpr int MAX_TUPLES_COUNT = 8;
 
 constexpr int CONDITION_SIZE = sizeof(int) + 2 * sizeof(sem_t);
 constexpr int SHM_HEADER_SIZE = 2 * sizeof(int) + 2 * sizeof(sem_t) + CONDITION_SIZE;
