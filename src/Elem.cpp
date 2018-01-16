@@ -21,10 +21,19 @@ Elem::Elem(char* shmPtr, int index, bool hasRef):
 }
 
 Elem::Elem(Elem&& e) {
+	addr = nullptr;
 	*this = std::move(e);
 }
 
 Elem& Elem::operator=(Elem&& e) {
+	if ((addr != nullptr) && hasRef) {
+		sync.decRef();
+	}
+	assign(std::move(e));
+	return *this;
+}
+
+void Elem::assign(Elem&& e) {
 	hasRef = e.hasRef;
 	shmPtr = e.shmPtr;
 	index = e.index;
@@ -34,7 +43,6 @@ Elem& Elem::operator=(Elem&& e) {
 
 	// only the new elem is responsible should sync.decRef() in destuctor
 	e.hasRef = false;
-	return *this;
 }
 
 Elem::~Elem() {
@@ -54,7 +62,15 @@ void Elem::free() {
 
 bool Elem::next(double& timeout) {
 	assertValid();
-	tryDelete();
+	bool anyDelete = false;
+	while (tryDelete()) {
+		anyDelete = true;
+		if (addr == nullptr)
+			break;
+	}
+	if (anyDelete) {
+		return addr != nullptr;
+	}
 
 	ShmHeader shmHeader(shmPtr);
 
@@ -67,7 +83,8 @@ bool Elem::next(double& timeout) {
 		auto condGuard = shmHeader.cond.mutex.guardLock();
 
 		if (header->nextElemIndex != static_cast<int>(Index::End)) {
-			*this = Elem(shmPtr, header->nextElemIndex);
+			sync.decRef(false);
+			assign(Elem(shmPtr, header->nextElemIndex));
 			return true;
 		}
 
@@ -83,7 +100,8 @@ bool Elem::next(double& timeout) {
 		lock();
 	}
 
-	*this = Elem(shmPtr, header->nextElemIndex);
+	sync.decRef(false);
+	assign(Elem(shmPtr, header->nextElemIndex));
 	return true;
 }
 
@@ -132,7 +150,7 @@ void Elem::print()const {
 		std::cout << "\tTuple: ";
 		Tuple t((unsigned char*)getTupleBodyPtr());
 		t.print();
-	}else {
+	} else {
 		assert(getStatus() == Status::Valid);
 		std::cout << "Valid" << std::endl;
 		std::cout << "\tTuple: ";
@@ -142,8 +160,10 @@ void Elem::print()const {
 
 	std::cout << "\tReferences: " << sync.getRefCount() << std::endl;
 
-	std::cout << "\tPrevIndex: " << header->prevElemIndex << std::endl;
-	std::cout << "\tNextIndex: " << header->nextElemIndex << std::endl;
+	if (getStatus() != Status::Free) {
+		std::cout << "\tPrevIndex: " << header->prevElemIndex << std::endl;
+		std::cout << "\tNextIndex: " << header->nextElemIndex << std::endl;
+	}
 }
 
 char* Elem::getAddr(int index) const {
@@ -154,17 +174,94 @@ char* Elem::getAddr(int index) const {
 		return nullptr;
 }
 
-void Elem::tryDelete() {
+bool Elem::tryDelete() {
 	assertValid();
-	// TODO: implement
-	// remember that 3 locks are required to delete the element
-	// if (header->status == static_cast<int>(Status::Zombie)) {
-	// 	if (sync.getRefCount() == 1) {
-	// 	}
-	// }
+	int prevIndex;
+
+	{
+		auto guard = sync.getMutex().guardLock();
+		if (header->status != static_cast<int>(Status::Zombie)
+				|| sync.getRefCount() != 1) {
+			return false;
+		}
+		prevIndex = header->prevElemIndex;
+	}
+
+	if (prevIndex == static_cast<int>(Index::REnd)) {
+		ShmHeader shmHeader(shmPtr);
+
+		auto guard1 = shmHeader.headLock.guardLock();
+		if (*shmHeader.headIndex != index)
+			return false;
+
+		auto guard2 = sync.getMutex().guardLock();
+		if (getNextIndex() == static_cast<int>(Index::End)) {
+			auto guard3 = shmHeader.tailLock.guardLock();
+
+			*shmHeader.headIndex = static_cast<int>(Index::End);
+			*shmHeader.tailIndex = static_cast<int>(Index::End);
+			header->status = static_cast<int>(Status::Free);
+
+			sync.decRef(false);
+			assign(Elem(shmPtr, static_cast<int>(Index::End)));
+
+			return true;
+		}
+
+		Elem e3(shmPtr, getNextIndex());
+		auto guard3 = e3.sync.getMutex().guardLock();
+
+		*shmHeader.headIndex = e3.getIndex();
+		e3.header->prevElemIndex = static_cast<int>(Index::REnd);
+		header->status = static_cast<int>(Status::Free);
+
+		e3.unlock();
+		sync.decRef(false);
+		assign(Elem(shmPtr, e3.getIndex()));
+		e3.lock();
+
+		return true;
+	}
+
+	Elem e1(shmPtr, prevIndex);
+	auto guard1 = e1.sync.getMutex().guardLock();
+	if (e1.getNextIndex() != index)
+		return false;
+
+	auto guard2 = sync.getMutex().guardLock();
+	if (getNextIndex() == static_cast<int>(Index::End)) {
+		ShmHeader shmHeader(shmPtr);
+		auto guard3 = shmHeader.tailLock.guardLock();
+
+		e1.header->nextElemIndex = static_cast<int>(Index::End);
+		*shmHeader.tailIndex = e1.getIndex();
+		header->status = static_cast<int>(Status::Free);
+
+		sync.decRef(false);
+		assign(Elem(shmPtr, static_cast<int>(Index::End)));
+
+		return true;
+	}
+
+	std::cerr << "delete 4 - true" << std::endl;
+
+	Elem e3(shmPtr, getNextIndex());
+	auto guard3 = e3.sync.getMutex().guardLock();
+
+	e1.header->nextElemIndex = e3.getIndex();
+	e3.header->prevElemIndex = e1.getIndex();
+	header->status = static_cast<int>(Status::Free);
+
+	e3.unlock();
+	sync.decRef(false);
+	assign(Elem(shmPtr, e3.getIndex()));
+	e3.lock();
+
+	return true;
 }
 
 void Elem::assertValid()const {
+	assert(hasRef);
 	assert(addr != nullptr);
 	assert(getIndex() != static_cast<int>(Index::End));
 	assert(getIndex() != static_cast<int>(Index::Invalid));
@@ -173,6 +270,7 @@ void Elem::assertValid()const {
 
 std::optional<Tuple> Elem::readTakeImpl(const QueryVec& query, bool take) {
 	assertValid();
+
 	assert(getStatus() != Status::Free);
 	if (header->status == static_cast<int>(Status::Zombie)) {
 		return std::nullopt;
@@ -193,5 +291,6 @@ std::optional<Tuple> Elem::readTakeImpl(const QueryVec& query, bool take) {
 		header->status = static_cast<int>(Status::Zombie);
 	}
 
+	tryDelete();
 	return tuple;
 }

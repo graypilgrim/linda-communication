@@ -29,9 +29,11 @@ public:
 	};
 
 	Elem(char* shmPtr, int index, bool hasRef=true);
-	Elem(const Elem&)=delete;
 	Elem(Elem&&);
+	Elem(const Elem&)=delete;
 	Elem& operator=(Elem&&);
+	Elem& operator=(const Elem&)=delete;
+
 	~Elem();
 
 	void init();
@@ -56,10 +58,13 @@ public:
 
 	char* getTupleBodyPtr()const;
 	Status getStatus()const;
+	char* getAddr()const { return addr; }
 
 	void print()const;
 
 private:
+
+	void assign(Elem&& e);
 
 	// if should increase/decrease reference
 	bool hasRef;
@@ -84,9 +89,10 @@ private:
 	/*
 	 * If current element has Zombie status
 	 * and ref count is 1 (currently, only I need this element),
-	 * try deleting it (may be unsuccessful because synchronization results).
+	 * try deleting it (may be unsuccessful because of synchronization).
+	 * Current index becomes the next element.
 	 */
-	void tryDelete();
+	bool tryDelete();
 
 	/*
 	 * Called at the beginning of some methods for avoiding bugs.

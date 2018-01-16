@@ -7,7 +7,6 @@
 
 #include <errno.h>
 #include <string.h>
-
 // TODO: consider moving some methods implementation to .cpp file
 class Mutex {
 	class LockGuard {
@@ -81,9 +80,9 @@ public:
 		mutex.free();
 	}
 
-	void incRef();
+	void incRef(bool sync=true);
 
-	void decRef();
+	void decRef(bool sync=true);
 
 	Mutex getMutex() {
 		return mutex;

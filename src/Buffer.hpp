@@ -50,8 +50,9 @@ public:
 	std::optional<Tuple> input(const std::string &query, double timeout=-1);
 	std::optional<Tuple> read(const std::string &query, double timeout=-1);
 
-	// mothod for degugging
+	// mothods for degugging
 	void print()const;
+	void printList()const;
 
 private:
 	std::string shmName;
@@ -60,8 +61,8 @@ private:
 
 	int currentAllocationIndex;
 
-	Elem getFirstElem();
-	Elem getLastElem();
+	Elem getFirstElem()const;
+	Elem getLastElem()const;
 
 	/*
 	 * Returns Elem with status Valid
