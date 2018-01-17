@@ -79,7 +79,7 @@ int main(int argc, char** argv) {
 
 	auto variables = command_line.GetVariables();
 	bool is_server = variables.count("server") != 0;
-	
+
 	if (is_server)
 		server(variables);
 	else

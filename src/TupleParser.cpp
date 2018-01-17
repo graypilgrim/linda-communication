@@ -27,13 +27,15 @@ Tuple TupleParser::parse()
 		switch (state)
 		{
 		case State::start:
-			if (c != '(') {
-				std::cout << "Expected opening paranthesis, received: " << c << std::endl;
-				return {};
+			if (c == '(') {
+				state = State::field;
+				break;
 			}
-			if (isWhitespace(c)) break;
-			state = State::field;
-			break;
+
+			if (isWhitespace(c) || isOpeningParanthesis(c)) break;
+
+			std::cout << "Expected opening paranthesis, received: " << c << std::endl;
+			return {};
 
 		case State::field:
 			if (isWhitespace(c)) break;
@@ -49,7 +51,7 @@ Tuple TupleParser::parse()
 				break;
 			}
 
-			if (isComa(c)) break;
+			if (isComa(c) || isClosingParanthesis(c)) break;
 
 			std::cout << "Number, coma or quotation mark expected, received: " << c << std::endl;
 			return {};
@@ -60,7 +62,7 @@ Tuple TupleParser::parse()
 				break;
 			}
 
-			if (isComa(c) || isWhitespace(c)) {
+			if (isComa(c) || isWhitespace(c) || isClosingParanthesis(c)) {
 				std::stringstream ss;
 				ss << token;
 				int n;
@@ -123,4 +125,14 @@ bool TupleParser::isLetter(char c)
 bool TupleParser::isAlNum(char c)
 {
 	return isDigit(c) || isLetter(c);
+}
+
+bool TupleParser::isOpeningParanthesis(char c)
+{
+	return c == '(';
+}
+
+bool TupleParser::isClosingParanthesis(char c)
+{
+	return c == ')';
 }

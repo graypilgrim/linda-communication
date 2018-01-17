@@ -18,6 +18,8 @@ private:
 	bool isWhitespace(char c);
 	bool isLetter(char c);
 	bool isAlNum(char c);
+	bool isOpeningParanthesis(char c);
+	bool isClosingParanthesis(char c);
 
 	std::string stringTuple;
 };
