@@ -18,5 +18,7 @@ build
 
 ### Binaries ##
 *.a
-linda-communication
+linda-*
 
+### CLion ###
+.idea

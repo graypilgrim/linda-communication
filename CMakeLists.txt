@@ -1,8 +1,6 @@
 cmake_minimum_required (VERSION 3.7)
 project (linda-communication)
 
-find_package (Boost COMPONENTS unit_test_framework REQUIRED)
-
 # set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/bin")
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
@@ -42,8 +40,5 @@ target_link_libraries (linda-tests Tuple)
 target_link_libraries (linda-tests CommandLine)
 target_link_libraries (linda-tests rt)
 target_link_libraries (linda-tests boost_unit_test_framework)
-
-target_link_libraries (linda-tests ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
-
 
 add_subdirectory(src)
