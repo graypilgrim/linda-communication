@@ -45,6 +45,7 @@ public:
 
 	int getIndex()const { return index; }
 	int getNextIndex()const { return header->nextElemIndex; }
+	int getPrevIndex()const { return header->prevElemIndex; }
 
 	// move to the next block (increment operator)
 	bool next(double& timeout);

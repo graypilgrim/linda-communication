@@ -101,10 +101,10 @@ namespace BufferTests
 		// boost is not thread safe
 		std::mutex m;
 
-		std::thread t1([&] {
+		auto fun = [&] {
 			Buffer buf("boostTest");
 			std::string query="(integer:*, integer:*, integer:*)";
-			for (int i = 0; i < MAX_TUPLES_COUNT-1 ; ++i) {
+			for (int i = 0; i < MAX_TUPLES_COUNT-2 ; ++i) {
 				Tuple t1{{1, 2, 3}};
 
 				bool b = buf.output(t1) == Buffer::OutputResult::success;
@@ -120,31 +120,17 @@ namespace BufferTests
 					m.unlock();
 				}
 			}
-		});
+		};
 
-		std::thread t2([&] {
-			Buffer buf("boostTest");
-			std::string query="(integer:*, integer:*, integer:*)";
-			for (int i = 0; i < MAX_TUPLES_COUNT-1 ; ++i) {
-				Tuple t1{{1, 2, 3}};
-
-				bool b = buf.output(t1) == Buffer::OutputResult::success;
-				m.lock();
-				BOOST_CHECK(b);
-				m.unlock();
-
-				if(auto result = buf.input(query, 1)) {
-				} else {
-					serv.print();
-					m.lock();
-					BOOST_CHECK(0);
-					m.unlock();
-				}
-			}
-		});
+		std::thread t1(fun);
+		std::thread t2(fun);
+		std::thread t3(fun);
+		std::thread t4(fun);
 
 		t1.join();
 		t2.join();
+		t3.join();
+		t4.join();
 
 		serv.destroy();
 	}

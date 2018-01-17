@@ -10,6 +10,7 @@
 
 #include <errno.h>
 #include <string.h>
+#include <cassert>
 
 Buffer::Buffer(const std::string &shmName, bool initialized):
 		shmName(shmName),
@@ -153,6 +154,8 @@ Buffer::OutputResult Buffer::output(const Tuple &tuple)
 	shmHeader.cond.broadcast();
 	shmHeader.cond.mutex.unlock();
 
+	assert(freeBlock.getStatus() != Elem::Status::Free);
+
 	return OutputResult::success;
 }
 
@@ -191,7 +194,14 @@ Elem Buffer::getFirstElem()const
 {
 	ShmHeader shmHeader(shmPtr);
 	auto g = shmHeader.headLock.guardLock();
-	return Elem(shmPtr, *shmHeader.headIndex);
+	Elem elem(shmPtr, *shmHeader.headIndex);
+	if (elem.getIndex() != static_cast<int>(Index::End)) {
+		if (elem.getStatus() == Elem::Status::Free) {
+			std::cerr << elem.getIndex() << std::endl;
+			assert(elem.getStatus() != Elem::Status::Free);
+		}
+	}
+	return std::move(elem);
 }
 
 Elem Buffer::getLastElem()const
@@ -260,6 +270,8 @@ std::optional<Tuple> Buffer::inputReadImpl(const std::string &query,
 		}
 		cur = getFirstElem();
 	}
+
+	assert(cur.getStatus() != Elem::Status::Free);
 
 	while (true) {
 		if (deleteTuple) {
