@@ -48,9 +48,6 @@ void client(const po::variables_map& vm) {
 						<< "Shared memory name: " << shm_name << std::endl;
 
 	Buffer buffer(shm_name);
-
-	// TODO: implement interactive console for testing
-	// following is a simple test
 	buffer.print();
 
 	if (vm.count("output")) {

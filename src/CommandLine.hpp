@@ -20,7 +20,6 @@ class CommandLine {
 public:
 	CommandLine(int argc, char** argv);
 	void Parse();
-  void PrintHelp();
 	const po::variables_map& GetVariables() const;
 
 private:

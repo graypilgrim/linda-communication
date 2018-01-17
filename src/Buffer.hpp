@@ -7,8 +7,6 @@
 #include <optional>
 #include <string>
 
-
-// TODO: consider moving to other file
 struct ShmHeader {
 	ShmHeader(void* shmPtr):
 			headLock(shmPtr),

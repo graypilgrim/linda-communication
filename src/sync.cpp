@@ -7,7 +7,6 @@ bool timedWait(sem_t* sem, double& timeout){
     }
 	struct timespec ts;
 	if (clock_gettime(CLOCK_REALTIME, &ts) == -1) {
-		// TODO: consider different handling
 		std::cerr << "clock_gettime error";
 		exit(EXIT_FAILURE);
 	}

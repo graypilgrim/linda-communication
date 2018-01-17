@@ -15,10 +15,6 @@ Buffer::Buffer(const std::string &shmName, bool initialized):
 		shmName(shmName),
 		currentAllocationIndex(0) {
 	if (initialized) {
-		// TODO: check what these flags do in this case (shm object exists)
-		// auto mode = S_IRUSR | S_IWUSR | S_IWGRP | S_IRGRP | S_IWOTH | S_IROTH;
-
-		// TODO: error handling
 		shmFd = shm_open(shmName.c_str(), O_RDWR, 0);
 		std::cerr << "shm_open: " << strerror(errno) << std::endl;
 		if (shmFd < 0)
@@ -26,15 +22,19 @@ Buffer::Buffer(const std::string &shmName, bool initialized):
 
 		shmPtr = (char*)mmap(nullptr, SHM_SIZE, PROT_WRITE, MAP_SHARED, shmFd, 0);
 		std::cerr << "mmap: " << strerror(errno) << std::endl;
+
+		if (shmPtr < 0)
+			exit(errno);
 	}
 }
 
 void Buffer::init() {
-	// TODO: error handling
-
 	auto mode = S_IRUSR | S_IWUSR | S_IWGRP | S_IRGRP | S_IWOTH | S_IROTH;
 	shmFd = shm_open(shmName.c_str(), O_CREAT | O_RDWR, mode);
 	std::cerr << "shm_open: " << strerror(errno) << std::endl;
+	if (shmFd < 0)
+		exit(errno);
+
 	auto result = ftruncate(shmFd, SHM_SIZE);
 	std::cerr << "ftruncate: " << strerror(errno) << std::endl;
 	if (result < 0)
@@ -70,11 +70,20 @@ void Buffer::destroy() {
 	shmHeader.cond.free();
 	std::cerr << "cond.free(): " << strerror(errno) << std::endl;
 
-	munmap(shmPtr, SHM_SIZE);
+	int result = munmap(shmPtr, SHM_SIZE);
 	std::cerr << "munmap: " << strerror(errno) << std::endl;
-	close(shmFd);
-	shm_unlink(shmName.c_str());
+	if(result < 0)
+		exit(errno);
+
+	result = close(shmFd);
+	std::cerr << "close: " << strerror(errno) << std::endl;
+	if(result < 0)
+		exit(errno);
+
+	result = shm_unlink(shmName.c_str());
 	std::cerr << "shm_unlink: " << strerror(errno) << std::endl;
+	if(result < 0)
+		exit(errno);
 }
 
 Buffer::OutputResult Buffer::output(const Tuple &tuple)
@@ -239,7 +248,6 @@ std::optional<Tuple> Buffer::inputReadImpl(const std::string &query,
 
 	ShmHeader shmHeader(shmPtr);
 
-	// TODO: consider including other short operations times in timeout
 	Elem cur = getFirstElem();
 
 	while (cur.getIndex() == static_cast<int>(Index::End)) {
