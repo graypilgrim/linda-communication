@@ -20,6 +20,7 @@ target_link_libraries (linda-communication QueryParser)
 target_link_libraries (linda-communication StringOrNumber)
 target_link_libraries (linda-communication sync)
 target_link_libraries (linda-communication Tuple)
+target_link_libraries (linda-communication TupleParser)
 target_link_libraries (linda-communication CommandLine)
 
 target_link_libraries (linda-communication boost_program_options)
