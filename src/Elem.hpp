@@ -39,6 +39,7 @@ public:
 	void init();
 	void free();
 
+	ElemSync& getSync() { return sync; }
 	void lock() { sync.getMutex().lock(); }
 	void unlock() { sync.getMutex().unlock(); }
 

@@ -1,6 +1,8 @@
 #include <boost/test/unit_test.hpp>
 
 #include <iostream>
+#include <thread>
+#include <mutex>
 
 #include "../src/Buffer.hpp"
 #include "../src/utils.hpp"
@@ -18,7 +20,6 @@ namespace BufferTests
 			BOOST_CHECK(buf.output(t1) == Buffer::OutputResult::success);
 		}
 		for (int i = 0; i < 10; ++i) {
-			std::cout << "dupa" << std::endl;
 			Tuple t1{{1, "ala", "ma", "kota", 3}};
 			BOOST_CHECK(buf.output(t1) == Buffer::OutputResult::out_of_memory);
 		}
@@ -56,5 +57,96 @@ namespace BufferTests
 		serv.destroy();
 	}
 
-	// TODO: multithreaded tests
+    BOOST_AUTO_TEST_CASE(testAddDeleteMultithreaded) {
+		Buffer serv("boostTest", false);
+		serv.init();
+
+		std::mutex m;
+		std::thread t1([&m] {
+			Buffer buf("boostTest");
+			for (int i = 0; i < MAX_TUPLES_COUNT ; ++i) {
+				Tuple t1{{1, 2, 3}};
+				bool b = buf.output(t1) == Buffer::OutputResult::success;
+				m.lock();
+				BOOST_CHECK(b);
+				m.unlock();
+			}
+		});
+
+
+		std::thread t2([&m] {
+			Buffer buf("boostTest");
+			std::string query="(integer:*, integer:*, integer:*)";
+			for (int i = 0; i < MAX_TUPLES_COUNT ; ++i) {
+				if(auto result = buf.input(query, 4)) {
+				} else {
+					// buf.print();
+					m.lock();
+					BOOST_CHECK(0);
+					m.unlock();
+				}
+			}
+		});
+
+		t1.join();
+		t2.join();
+
+		serv.destroy();
+	}
+
+    BOOST_AUTO_TEST_CASE(testAddDeleteMultithreaded2) {
+		Buffer serv("boostTest", false);
+		serv.init();
+
+		// boost is not thread safe
+		std::mutex m;
+
+		std::thread t1([&] {
+			Buffer buf("boostTest");
+			std::string query="(integer:*, integer:*, integer:*)";
+			for (int i = 0; i < MAX_TUPLES_COUNT-1 ; ++i) {
+				Tuple t1{{1, 2, 3}};
+
+				bool b = buf.output(t1) == Buffer::OutputResult::success;
+				m.lock();
+				BOOST_CHECK(b);
+				m.unlock();
+
+				if(auto result = buf.input(query, 1)) {
+				} else {
+					serv.print();
+					m.lock();
+					BOOST_CHECK(0);
+					m.unlock();
+				}
+			}
+		});
+
+		std::thread t2([&] {
+			Buffer buf("boostTest");
+			std::string query="(integer:*, integer:*, integer:*)";
+			for (int i = 0; i < MAX_TUPLES_COUNT-1 ; ++i) {
+				Tuple t1{{1, 2, 3}};
+
+				bool b = buf.output(t1) == Buffer::OutputResult::success;
+				m.lock();
+				BOOST_CHECK(b);
+				m.unlock();
+
+				if(auto result = buf.input(query, 1)) {
+				} else {
+					serv.print();
+					m.lock();
+					BOOST_CHECK(0);
+					m.unlock();
+				}
+			}
+		});
+
+		t1.join();
+		t2.join();
+
+		serv.destroy();
+	}
+
 }

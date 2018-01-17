@@ -62,6 +62,7 @@ void Elem::free() {
 
 bool Elem::next(double& timeout) {
 	assertValid();
+	assert(getStatus() != Status::Free);
 	bool anyDelete = false;
 	while (tryDelete()) {
 		anyDelete = true;
@@ -69,7 +70,9 @@ bool Elem::next(double& timeout) {
 			break;
 	}
 	if (anyDelete) {
-		return addr != nullptr;
+		assert(addr != nullptr);
+		assert(getStatus() != Status::Free);
+		return true;
 	}
 
 	ShmHeader shmHeader(shmPtr);
@@ -85,6 +88,7 @@ bool Elem::next(double& timeout) {
 		if (header->nextElemIndex != static_cast<int>(Index::End)) {
 			sync.decRef(false);
 			assign(Elem(shmPtr, header->nextElemIndex));
+			assert(getStatus() != Status::Free);
 			return true;
 		}
 
@@ -98,6 +102,7 @@ bool Elem::next(double& timeout) {
 
 	sync.decRef(false);
 	assign(Elem(shmPtr, header->nextElemIndex));
+	assert(getStatus() != Status::Free);
 	return true;
 }
 
@@ -178,65 +183,80 @@ bool Elem::tryDelete() {
 		auto guard = sync.getMutex().guardLock();
 		if (header->status != static_cast<int>(Status::Zombie)
 				|| sync.getRefCount() != 1) {
+			assert(getStatus() != Status::Free);
 			return false;
 		}
 		prevIndex = header->prevElemIndex;
 	}
 
+	assert(getStatus() != Status::Free);
+
 	if (prevIndex == static_cast<int>(Index::REnd)) {
 		ShmHeader shmHeader(shmPtr);
 
 		auto guard1 = shmHeader.headLock.guardLock();
-		if (*shmHeader.headIndex != index)
+		if (*shmHeader.headIndex != index) {
+			assert(getStatus() != Status::Free);
 			return false;
+		}
 
 		auto guard2 = sync.getMutex().guardLock();
 		if (getNextIndex() == static_cast<int>(Index::End)) {
-			auto guard3 = shmHeader.tailLock.guardLock();
+			assert(getStatus() != Status::Free);
+			return false;
+			// auto guard3 = shmHeader.tailLock.guardLock();
 
-			*shmHeader.headIndex = static_cast<int>(Index::End);
-			*shmHeader.tailIndex = static_cast<int>(Index::End);
-			header->status = static_cast<int>(Status::Free);
+			// *shmHeader.headIndex = static_cast<int>(Index::End);
+			// *shmHeader.tailIndex = static_cast<int>(Index::End);
+			// header->status = static_cast<int>(Status::Free);
 
-			sync.decRef(false);
-			assign(Elem(shmPtr, static_cast<int>(Index::End)));
+			// sync.decRef(false);
+			// assign(Elem(shmPtr, static_cast<int>(Index::End)));
 
-			return true;
+			// return true;
 		}
 
 		Elem e3(shmPtr, getNextIndex());
 		auto guard3 = e3.sync.getMutex().guardLock();
 
-		*shmHeader.headIndex = e3.getIndex();
-		e3.header->prevElemIndex = static_cast<int>(Index::REnd);
-		header->status = static_cast<int>(Status::Free);
+		if (sync.getRefCount() == 1) {
+			*shmHeader.headIndex = e3.getIndex();
+			e3.header->prevElemIndex = static_cast<int>(Index::REnd);
+			header->status = static_cast<int>(Status::Free);
 
-		e3.unlock();
-		sync.decRef(false);
-		assign(Elem(shmPtr, e3.getIndex()));
-		e3.lock();
-
-		return true;
+			e3.unlock();
+			sync.decRef(false);
+			assign(Elem(shmPtr, e3.getIndex()));
+			e3.lock();
+			assert(getStatus() != Status::Free);
+			return true;
+		}
+		return false;
 	}
 
 	Elem e1(shmPtr, prevIndex);
 	auto guard1 = e1.sync.getMutex().guardLock();
-	if (e1.getNextIndex() != index)
+	if (e1.getNextIndex() != index){
+		assert(getStatus() != Status::Free);
 		return false;
+	}
 
 	auto guard2 = sync.getMutex().guardLock();
 	if (getNextIndex() == static_cast<int>(Index::End)) {
-		ShmHeader shmHeader(shmPtr);
-		auto guard3 = shmHeader.tailLock.guardLock();
+		assert(getStatus() != Status::Free);
+		return false;
 
-		e1.header->nextElemIndex = static_cast<int>(Index::End);
-		*shmHeader.tailIndex = e1.getIndex();
-		header->status = static_cast<int>(Status::Free);
+		// ShmHeader shmHeader(shmPtr);
+		// auto guard3 = shmHeader.tailLock.guardLock();
 
-		sync.decRef(false);
-		assign(Elem(shmPtr, static_cast<int>(Index::End)));
+		// e1.header->nextElemIndex = static_cast<int>(Index::End);
+		// *shmHeader.tailIndex = e1.getIndex();
+		// header->status = static_cast<int>(Status::Free);
 
-		return true;
+		// sync.decRef(false);
+		// assign(Elem(shmPtr, static_cast<int>(Index::End)));
+
+		// return true;
 	}
 
 	std::cerr << "delete 4 - true" << std::endl;
@@ -244,16 +264,20 @@ bool Elem::tryDelete() {
 	Elem e3(shmPtr, getNextIndex());
 	auto guard3 = e3.sync.getMutex().guardLock();
 
-	e1.header->nextElemIndex = e3.getIndex();
-	e3.header->prevElemIndex = e1.getIndex();
-	header->status = static_cast<int>(Status::Free);
+	if (sync.getRefCount() == 1) {
+		e1.header->nextElemIndex = e3.getIndex();
+		e3.header->prevElemIndex = e1.getIndex();
+		header->status = static_cast<int>(Status::Free);
 
-	e3.unlock();
-	sync.decRef(false);
-	assign(Elem(shmPtr, e3.getIndex()));
-	e3.lock();
+		e3.unlock();
+		sync.decRef(false);
+		assign(Elem(shmPtr, e3.getIndex()));
+		e3.lock();
 
-	return true;
+		assert(getStatus() != Status::Free);
+		return true;
+	}
+	return false;
 }
 
 void Elem::assertValid()const {

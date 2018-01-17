@@ -141,7 +141,6 @@ Buffer::OutputResult Buffer::output(const Tuple &tuple)
 	freeBlock.unlock();
 
 	shmHeader.cond.mutex.lock();
-	std::cerr << "broadcast" << std::endl;
 	shmHeader.cond.broadcast();
 	shmHeader.cond.mutex.unlock();
 
@@ -189,8 +188,32 @@ Elem Buffer::getFirstElem()const
 Elem Buffer::getLastElem()const
 {
 	ShmHeader shmHeader(shmPtr);
-	auto g = shmHeader.tailLock.guardLock();
-	return Elem(shmPtr, *shmHeader.tailIndex);
+	while (true) {
+		int lastIndex;
+		{
+			auto g = shmHeader.tailLock.guardLock();
+			lastIndex = *shmHeader.tailIndex;
+		}
+		if (lastIndex == static_cast<int>(Index::End)) {
+			auto g = shmHeader.tailLock.guardLock();
+			if (lastIndex == static_cast<int>(Index::End)) {
+				return Elem(shmPtr, lastIndex);
+			} else {
+				continue;
+			}
+		}
+		Elem elem(shmPtr, lastIndex);
+		{
+			auto g = elem.getSync().getMutex().guardLock();
+			if (elem.getAddr() == nullptr)
+				continue;
+			if (elem.getStatus() == Elem::Status::Free)
+				continue;
+			if (elem.getNextIndex() != static_cast<int>(Index::End))
+				continue;
+		}
+		return std::move(elem);
+	}
 }
 
 Elem Buffer::findFreeBlock() {
@@ -223,6 +246,7 @@ std::optional<Tuple> Buffer::inputReadImpl(const std::string &query,
 		auto shmHeaderGuard = shmHeader.cond.mutex.guardLock();
 		if (cur.getIndex() == static_cast<int>(Index::End)) {
 			if (!shmHeader.cond.wait(timeout)) {
+				// std::cerr << "timeout" << std::endl;
 				return std::nullopt;
 			}
 		}
@@ -237,8 +261,9 @@ std::optional<Tuple> Buffer::inputReadImpl(const std::string &query,
 			if (auto result = cur.read(queries))
 				return result.value();
 		}
-		if (!cur.next(timeout))
+		if (!cur.next(timeout)) {
+			// std::cerr << "next timeout" << std::endl;
 			return std::nullopt;
+		}
 	}
-	return std::nullopt;
 }
