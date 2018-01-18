@@ -7,7 +7,7 @@
 \usepackage{float}
 \usepackage{listings}
 
-\title{Komunikacja wieloprocesowa w języku Linda realizowana przy pomocy pamięci współdzielonej oraz semaforów}
+\title{Komunikacja wieloprocesowa w języku Linda realizowana przy pomocy pamięci współdzielonej oraz semaforów.}
 \author{Michał Sypetkowski, Marcin Waszak, Łukasz Wlazły}
 \date{}
 
@@ -30,18 +30,18 @@
 	\subsection{Interpretacja}
 	\begin{enumerate}
 		\item \texttt{ELEM\_SIZE}, \texttt{MAX\_TUPLES\_COUNT} - stałe edytowalne przed kompilacją, domyślnie 256 i 4096
-		\item Krotki będą przechowywane w obszarze pamięci współdzielonej w postaci listy, do której dostęp będzie miał każdy proces korzystający z API dostępnego w tworzonej bibliotece.
+		\item Krotki są przechowywane w obszarze pamięci współdzielonej w postaci listy, do której dostęp będzie miał każdy proces korzystający z API dostępnego w tworzonej bibliotece.
 		\item Pamięć współdzielona zawiera listę krotek.
 		\item Każdy element listy ma wielkość \texttt{ELEM\_SIZE} bajtów.
 		\item Każdy element listy zawiera: dane krotki, wskaźnik na następny element w liście oraz parę semaforów ("pisarz" oraz "czytelni") do synchronizacji.
-		\item Wskaźnik na pierwszy element listy jest współdzielony i synchronizowany mechanizmem semaforów.
+		\item Wskaźnik na pierwszy i ostatni element listy jest współdzielony i synchronizowany mechanizmem semaforów.
 		\item Nowy element dodawany jest na koniec listy.
 		\item Usuwanie elementu z listy wymaga 2 dostępów pisarza (dla 2 sąsiednich elementów - poprzednika i usuwanego).
 		\item Odczytywanie polega na przeiterowanie się po liście aż odnajdzie się pasujący element (wymaga dostępów czytelnika dla obecnie czytanego elementu).
-		\item Projekt zostanie wykonany w języku C++ (standard C++17).
-		\item Pamięć współdzielona oraz semafory zostaną zrealizowane według standardu POSIX.
+		\item Projekt wykonany w języku C++ (standard C++17).
+		\item Pamięć współdzielona oraz semafory będą zrealizowane według standardu POSIX.
 		\item Maksymalna liczba krotek jest stała - \texttt{MAX\_TUPLES\_COUNT}.
-		\item Obszar pamięci na krotki będzie zawierał nagłówek określający ilość elementów krotki i typy jej elementów, a także wartości przesunięć względem początkowego adresu krotki. Wartości elementów będą stanowiły resztę obszaru.
+		\item Obszar pamięci na krotki zawiera nagłówek określający ilość elementów krotki i typy jej elementów, a także wartości przesunięć względem początkowego adresu krotki. Wartości elementów będą stanowiły resztę obszaru.
 	\end{enumerate}
 	
 	\subsection{Struktura danych w pamięci współdzielonej}
@@ -52,9 +52,9 @@
 	\end{figure}
 
 
-	\subsection{API}
-	Użytkownik biblioteki ma do dyspozycji dwie główne klasy: \texttt{Tuple} oraz \texttt{Buffer}. Pozwalają one na wygodną implementację funkcjonalności oferowanej przez języka Linda. Ponadto udostępniono kilka klas pomocniczych: \texttt{QueryLexer}, \texttt{QueryParser}, \texttt{TupleParser}, \texttt{StringOrNumber}
-	\subsubsection{Tuple}
+	\section{API}
+	Użytkownik biblioteki ma do dyspozycji dwie główne klasy: \texttt{Tuple} oraz \texttt{Buffer}. Pozwalają one na wygodną implementację funkcjonalności oferowanej przez języka Linda. Ponadto udostępniono kilka klas pomocniczych: \texttt{QueryLexer}, \texttt{QueryParser}, \texttt{TupleParser} oraz \texttt{StringOrNumber}.
+	\subsection{Tuple}
 	Uniwersalna abstrakcja dla krotek używanych wewnątrz Lindy. Klasa udostępnia trzy konstruktory: \\
 	\begin{enumerate}
 		\item \texttt{Tuple() = default}
@@ -63,23 +63,42 @@
 	\end{enumerate}
 	Każda istniejąca krotka może zostać rozszerzona dzięki metodzie \\ \texttt{void append(StringOrNumber value)}. \\
 	Ponadto obiekt tej klasy potrafi zapisać krotkę, którą reprezentuje, bezpośrednio pod wskazany adres pamięci. Realizuje to funkcja \texttt{void write(unsigned char* addr) const}. \\
-	Klasy \texttt{QueryLexer} oraz \texttt{QueryParser} pozwalają na analizę wzorca zadanego do metod i przetworzenie go do postaci par: typ - funkcja lambda, przy czym \texttt{QueryLexer} analizuje wzorzec jako ciąg znaków, natomiast \texttt{QueryParser} bazuje na tokenach zwróconych przez pierwszą z wymienionych klas. Zapis wzorców w formie par sprawia, że za pomocą metody \texttt{bool match(const QueryVec \&pattern)} krotka potrafi sprawdzić, czy jej zawartość odpowiada zadanemu wzorcowi.
+	Klasy \texttt{QueryLexer} oraz \texttt{QueryParser} pozwalają na analizę wzorca zadanego do metod i przetworzenie go do postaci par: typ - funkcja lambda, przy czym \texttt{QueryLexer} analizuje wzorzec jako ciąg znaków, natomiast \texttt{QueryParser} bazuje na tokenach zwróconych przez pierwszą z wymienionych klas. Zapis wzorców w formie par sprawia, że za pomocą metody \texttt{bool match(const QueryVec \&queries)} krotka potrafi sprawdzić, czy jej zawartość odpowiada zadanemu wzorcowi.
 	
-	\subsubsection{Buffer}
-	Abstrakcja dla obszaru pamięci, w którym zapisywane są krotki. Jedyny konstruktor \texttt{Buffer(const std::string \&shmName, bool initialized=true)} przyjmuje jako argument nazwę podaną przez użytkownika, która pozwala na jednoznaczną identyfikację obszaru pamięci w systemie. Dzięki temu w systemie może istnieć niezależnie wiele działających instancji do komunikacji w Lindzie. \\
+	\subsection{Buffer}
+	Abstrakcja dla obszaru pamięci, w którym zapisywane są krotki. Jedyny konstruktor:\\
+	\texttt{Buffer(const std::string \&shmName, bool initialized=true)}\\
+	przyjmuje jako argument nazwę podaną przez użytkownika, która pozwala na jednoznaczną identyfikację obszaru pamięci w systemie. Dzięki temu w systemie może istnieć niezależnie wiele działających instancji do komunikacji w Lindzie. \\
 	Umieszczono tu także metody \texttt{output}, \texttt{input} oraz \texttt{read}, które realizują funkcjonalność określoną w treści zadania. \\
 	Obiekt klasy \texttt{Buffer} w czasie swojego życia może być wielokrotnie inicjalizowany i zamykany.
 	
-	\subsection{Interfejs użytkownika}
+	\section{Opis rozwiązań funkcjonalnych}
+	Liczba możliwych krotek w pamięci jest stała, dlatego klasa \texttt{Buffer} w czasie inicjalizacji obszaru pamięci współdzielonej umieszcza tam odpowiedni nagłówek oraz przygotowuje obiekty odpowiedzialne za synchronizację.
+	
+	\subsection{Dodawanie krotki}
+	Jest to najprostsza sytuacja. Wymaga sprawdzenia, czy jest jeszcze miejsce w pamięci.
+	Jeśli wszystkie pola dla krotek są zajęte, metoda kończy się błędem z odpowiednim kodem.
+	W przeciwnym przypadku \texttt{Buffer} blokuje dostęp do wskaźnika na koniec listy i umieszcza tam dane.
+	
+	\subsection{Czytanie / wyjmowanie krotki}
+	Znalezienie krotki pasującej do wzorca wymaga sekwencyjnego odczytu pewnego (czasami całego) obszaru pamięci.
+	W tym celu należy blokować po kolei blokować dostęp do każdego elementu i zweryfikować jego zawartość zgodnie ze wzorcem.
+	Jeśli krotka pasuje do wzorca to, w zależności od użytej metody, jest odczytywana lub odczytywana i usuwana z pamięci.
+	Jeśli nie została znaleziona proces zostaje zawieszony w oczekiwaniu na pojawienie się nowych krotek.
+	Usunięcie krotki wymaga zablokowania dostępu do sąsiadów (lista krotek jest dwukierunkowa) i odpowiedniego ustawienia wskaźników na następny i poprzedni element tak, aby lista krotek była ciągła. 
+		
+	\section{Interfejs użytkownika}
 	Projekt, oprócz biblioteki realizującej funkcjonalność Lindy, zawiera kod wykorzystujący tę bibliotekę. W zbudowanym projekcie dostępny jest plik binarny \texttt{linda-communication}, który realizuje funkcje serwera i klienta (w zależności od wybranych parametrów).
 	\\
 	Pełny opis dostępny przy użyciu flagi "--help". Wszystkie operacje muszą mieć podany identyfikator pamięci - podawany przez parametr "--name". \\
 	
-	Jako pierwszy musi zostać uruchomiony serwer, ten tryb zapewnia opcja "--server". Uruchomienie serwera z dozwoloną nazwą utworzy obszar, do krótego będą mogli łączyć się klienci. Zamknięcie serwera spowoduje usunięcie obszaru, który utworzył. \\
+	Jako pierwszy musi zostać uruchomiony serwer, ten tryb zapewnia opcja "--server". Uruchomienie serwera z dozwoloną nazwą utworzy obszar, do krótego będą mogli łączyć się klienci. Zamknięcie serwera spowoduje usunięcie obszaru, który utworzył. Serwer może zostać zamknięty przy użyciu sygnału \texttt{SIGINT} - przygotowano funkcję obsługi tego sygnału, która bezpiecznie zamyka pamięć współdzieloną.\\
 	
-	Klient ma do dyspozycji cztery polecenia: "--output", "--input", "--read" oraz "--timeout". Ostatnie polecenie pozwala na realizację czytania/wyjmowania krotki z ograniczeniem czasowym. Ponieważ wymagane jest, aby ciągi znakowe podawać w cudzysłowiu, argumenty, będące krotkami lub wzorcami, najlepiej podawać w apostrofach, np:\\ \texttt{./linda-communication -n "space" -o '(1, "ala ma kota", 3)'}.
+	Klient ma do dyspozycji cztery polecenia: "--output", "--input", "--read" oraz "--timeout". Ostatnie polecenie pozwala na realizację czytania/wyjmowania krotki z ograniczeniem czasowym.\\
 	
-	\subsection{Wykorzystane technologie}
+	Ponieważ wymagane jest, aby ciągi znakowe podawać w cudzysłowiu, argumenty, będące krotkami lub wzorcami, najlepiej podawać w apostrofach, np:\\ \texttt{./linda-communication -n "space" -o '(1, "ala ma kota", 3)'}.
+	
+	\section{Wykorzystane technologie}
 	\begin{enumerate}
 		\item Zgodnie z wymaganiami odnośnie do projektu, komunikacja oraz synchronizacja międzyprocesowa została zrealizowana przy pomocy pamięci współdzielonej oraz semaforów zgodnych ze standardem POSIX. Wybrano ten standard ze względu na dobrą dokumentację oraz intuicyjne API.
 		\item Głównym językiem projektu jest C++ w wersji 17. Jest to najnowsza (oficjalnie wydana) wersja tego języka, oferująca wiele ciekawych rozwiązań, jak np. std::optional.
@@ -88,11 +107,13 @@
 	\end{enumerate}
 	
 
-	\subsection{Obsługa błędów}
+	\section{Obsługa błędów}
 	Wszystkie sytuacje błędne będą sygnalizowane poprzez wartości zwracane z funkcji.
-	Metoda \texttt{output} może zakończyć się na dwa sposoby: sukcesem lub porażką z powodu braku pamięci na nową krótkę. Sytuacje te zostaną zmapowane na wartości liczbowe i zwrócone do użytkownika.
-	Metody \texttt{input} oraz \texttt{read} zwrócą krotkę, jeśli istnieje lub nic jeśli krotka pasująca do wyrażenia nie znajdzie się w buforze przez upłynięciem podanego czasu. Klasa \texttt{std::optional} z biblioteki standardowej pozwoli na bezpieczne obsłużenie obu sytuacji.
-
-
+	Metoda \texttt{output} może zakończyć się na dwa sposoby: sukcesem lub porażką z powodu braku pamięci na nową krótkę. Sytuacje te są mapowane na wartości liczbowe i zwracane do użytkownika.
+	Metody \texttt{input} oraz \texttt{read} zwrócą krotkę, jeśli istnieje, lub nic, jeśli krotka pasująca do wyrażenia nie znajdzie się w buforze przez upłynięciem podanego czasu. Klasa \texttt{std::optional} z biblioteki standardowej pozwala na bezpieczne obsłużenie obu sytuacji.
+	
+	\section{Metodyka testów}
+	Miejscem, gdzie potencjalnie może pojawić się najwięcej błędów jest klasa \texttt{Buffer}, ponieważ bezpośrednio ingeruje ona w obszar pamięci współdzielonej.
+	Dlatego przygotowano testy, które analizują zachowanie tej klasy przy dostępie wielowątkowym. Sprawdzono, czy klasa odpowiednio reaguje na brak miejsca w pamięci, dodawanie oraz usuwanie elementów.
 
 \end{document}

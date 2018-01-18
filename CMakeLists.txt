@@ -28,8 +28,7 @@ target_link_libraries (linda-communication rt)
 
 add_executable (linda-tests
 	"${PROJECT_SOURCE_DIR}/tests/main.cpp"
-	"${PROJECT_SOURCE_DIR}/tests/BufferTests.cpp"
-	"${PROJECT_SOURCE_DIR}/tests/QueryParserTests.cpp")
+	"${PROJECT_SOURCE_DIR}/tests/BufferTests.cpp")
 target_link_libraries (linda-tests Buffer)
 target_link_libraries (linda-tests Elem)
 target_link_libraries (linda-tests QueryLexer)

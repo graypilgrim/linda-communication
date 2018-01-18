@@ -48,14 +48,16 @@ void client(const po::variables_map& vm) {
 						<< "Shared memory name: " << shm_name << std::endl;
 
 	Buffer buffer(shm_name);
-	buffer.print();
 
 	if (vm.count("output")) {
 		auto pattern = vm["output"].as<string>();
 		TupleParser tuple_parser(pattern);
 		Tuple tuple = tuple_parser.parse();
 
-		buffer.output(tuple);
+		if (!tuple.empty())
+			buffer.output(tuple);
+		else
+			exit(1);
 	}
 	else if (vm.count("input")) {
 		auto pattern = vm["input"].as<string>();

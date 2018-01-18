@@ -24,7 +24,8 @@ public:
 	void write(unsigned char* addr)const;
 
 	void append(StringOrNumber value);
-	bool match(const QueryVec&);
+	bool match(const QueryVec &queries);
+	bool empty();
 
 private:
 	std::vector<StringOrNumber> values;
