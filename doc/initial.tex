@@ -3,6 +3,8 @@
 \usepackage[utf8]{inputenc}
 \usepackage{secdot}
 \sectiondot{subsection}
+\usepackage{graphicx}
+\usepackage{float}
 \usepackage{listings}
 
 \title{Komunikacja wieloprocesowa w języku Linda realizowana przy pomocy pamięci współdzielonej oraz semaforów}
@@ -41,6 +43,14 @@
 		\item Maksymalna liczba krotek jest stała - \texttt{MAX\_TUPLES\_COUNT}.
 		\item Obszar pamięci na krotki będzie zawierał nagłówek określający ilość elementów krotki i typy jej elementów, a także wartości przesunięć względem początkowego adresu krotki. Wartości elementów będą stanowiły resztę obszaru.
 	\end{enumerate}
+	
+	\subsection{Struktura danych w pamięci współdzielonej}
+	\begin{figure}[H]
+	\centering
+	\includegraphics[width=130mm]{images/struct.png}
+	\caption{Struktura danych znajdująca się w pamięci współdzielonej}
+	\end{figure}
+
 
 	\subsection{API}
 	Użytkownik biblioteki ma do dyspozycji dwie główne klasy: \texttt{Tuple} oraz \texttt{Buffer}. Pozwalają one na wygodną implementację funkcjonalności oferowanej przez języka Linda. Ponadto udostępniono kilka klas pomocniczych: \texttt{QueryLexer}, \texttt{QueryParser}, \texttt{TupleParser}, \texttt{StringOrNumber}
