@@ -90,11 +90,11 @@
 	\section{Interfejs użytkownika}
 	Projekt, oprócz biblioteki realizującej funkcjonalność Lindy, zawiera kod wykorzystujący tę bibliotekę. W zbudowanym projekcie dostępny jest plik binarny \texttt{linda-communication}, który realizuje funkcje serwera i klienta (w zależności od wybranych parametrów).
 	\\
-	Pełny opis dostępny przy użyciu flagi "--help". Wszystkie operacje muszą mieć podany identyfikator pamięci - podawany przez parametr "--name". \\
+	Pełny opis dostępny przy użyciu flagi "-{}-help". Wszystkie operacje muszą mieć podany identyfikator pamięci - podawany przez parametr "-{}-name". \\
 	
-	Jako pierwszy musi zostać uruchomiony serwer, ten tryb zapewnia opcja "--server". Uruchomienie serwera z dozwoloną nazwą utworzy obszar, do krótego będą mogli łączyć się klienci. Zamknięcie serwera spowoduje usunięcie obszaru, który utworzył. Serwer może zostać zamknięty przy użyciu sygnału \texttt{SIGINT} - przygotowano funkcję obsługi tego sygnału, która bezpiecznie zamyka pamięć współdzieloną.\\
+	Jako pierwszy musi zostać uruchomiony serwer, ten tryb zapewnia opcja "-{}-server". Uruchomienie serwera z dozwoloną nazwą utworzy obszar, do krótego będą mogli łączyć się klienci. Zamknięcie serwera spowoduje usunięcie obszaru, który utworzył. Serwer może zostać zamknięty przy użyciu sygnału \texttt{SIGINT} - przygotowano funkcję obsługi tego sygnału, która bezpiecznie zamyka pamięć współdzieloną.\\
 	
-	Klient ma do dyspozycji cztery polecenia: "--output", "--input", "--read" oraz "--timeout". Ostatnie polecenie pozwala na realizację czytania/wyjmowania krotki z ograniczeniem czasowym.\\
+	Klient ma do dyspozycji cztery polecenia: "-{}-output", "-{}-input", "-{}-read" oraz "-{}-timeout". Ostatnie polecenie pozwala na realizację czytania/wyjmowania krotki z ograniczeniem czasowym.\\
 	
 	Ponieważ wymagane jest, aby ciągi znakowe podawać w cudzysłowiu, argumenty, będące krotkami lub wzorcami, najlepiej podawać w apostrofach, np:\\ \texttt{./linda-communication -n "space" -o '(1, "ala ma kota", 3)'}.
 	
