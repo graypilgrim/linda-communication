@@ -10,8 +10,10 @@ QueryParser::QueryParser(const std::vector<std::string> &tokens)
 
 QueryVec QueryParser::parse()
 {
-	if (tokens.empty())
+	if (tokens.empty()) {
+		std::cerr << "Invalid tuple" << std::endl;
 		return {};
+	}
 
 	it = tokens.begin();
 
