@@ -32,9 +32,9 @@ void server(const po::variables_map& vm) {
 	server_buffer->init();
 
 	while (true) {
-		std::cout << "DUMP============================================" << std::endl;
-		server_buffer->print();
-		server_buffer->printList();
+		// std::cout << "DUMP============================================" << std::endl;
+		// server_buffer->print();
+		// server_buffer->printList();
 		std::cin.get();
 	}
 	// buffer->print();
@@ -54,21 +54,37 @@ void client(const po::variables_map& vm) {
 		TupleParser tuple_parser(pattern);
 		Tuple tuple = tuple_parser.parse();
 
-		if (!tuple.empty())
-			buffer.output(tuple);
-		else
+		if (!tuple.empty()) {
+			if (buffer.output(tuple) == Buffer::OutputResult::success) {
+                std:: cout << "success"  << std::endl;
+            } else {
+                std:: cout << "out of memory"  << std::endl;
+            }
+        } else {
+            std:: cout << "bad tuple"  << std::endl;
 			exit(1);
+        }
 	}
 	else if (vm.count("input")) {
 		auto pattern = vm["input"].as<string>();
 		auto timeout = vm["timeout"].as<int>();
 
-		buffer.input(pattern, timeout);
+		if (auto t = buffer.input(pattern, timeout)) {
+            std:: cout << "ok"  << std::endl;
+            t.value().print();
+        } else {
+            std:: cout << "timeout"  << std::endl;
+        }
 	}
 	else if (vm.count("read")) {
 		auto pattern = vm["read"].as<string>();
 		auto timeout = vm["timeout"].as<int>();
-		buffer.read(pattern, timeout);
+		if (auto t = buffer.read(pattern, timeout)) {
+            std:: cout << "ok"  << std::endl;
+            t.value().print();
+        } else {
+            std:: cout << "timeout"  << std::endl;
+        }
 	}
 }
 
