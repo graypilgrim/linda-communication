@@ -86,3 +86,8 @@ bool Tuple::match(const QueryVec& queries) {
 	}
 	return true;
 }
+
+bool Tuple::empty()
+{
+	return values.empty();
+}

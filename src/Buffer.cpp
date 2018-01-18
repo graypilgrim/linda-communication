@@ -255,6 +255,8 @@ std::optional<Tuple> Buffer::inputReadImpl(const std::string &query,
 	auto tokens = ql.tokenize();
 	QueryParser qp{tokens};
 	auto queries = qp.parse();
+	if (queries.empty())
+		exit(1);
 
 	ShmHeader shmHeader(shmPtr);
 
