@@ -10,6 +10,9 @@ QueryParser::QueryParser(const std::vector<std::string> &tokens)
 
 QueryVec QueryParser::parse()
 {
+	if (tokens.empty())
+		return {};
+
 	it = tokens.begin();
 
 	if (*it != "(") {
