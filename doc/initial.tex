@@ -33,18 +33,27 @@
 		\item Krotki są przechowywane w obszarze pamięci współdzielonej w postaci listy, do której dostęp będzie miał każdy proces korzystający z API dostępnego w tworzonej bibliotece.
 		\item Pamięć współdzielona zawiera listę krotek.
 		\item Każdy element listy ma wielkość \texttt{ELEM\_SIZE} bajtów.
-		\item Każdy element listy zawiera: dane krotki, wskaźnik na następny element w liście oraz parę semaforów ("pisarz" oraz "czytelni") do synchronizacji.
-		\item Wskaźnik na pierwszy i ostatni element listy jest współdzielony i synchronizowany mechanizmem semaforów.
+		\item Maksymalna liczba krotek jest stała - \texttt{MAX\_TUPLES\_COUNT}.
+        \item Mutex oraz zmienna warunkowa są implementowane przy użyciu semaforów.
+		\item Każdy element listy zawiera: dane krotki, wskaźniki na poprzedni i następny element w liście oraz mutex i licznik referencji do synchronizacji.
+		\item Wskaźnik na pierwszy i ostatni element listy jest współdzielony i synchronizowany .
 		\item Nowy element dodawany jest na koniec listy.
-		\item Usuwanie elementu z listy wymaga 2 dostępów pisarza (dla 2 sąsiednich elementów - poprzednika i usuwanego).
-		\item Odczytywanie polega na przeiterowanie się po liście aż odnajdzie się pasujący element (wymaga dostępów czytelnika dla obecnie czytanego elementu).
+        \item Do oczekiwania na nowy element jeszcze nieistniejący, proces zawiesza się na globalnej zmiennej warunkowej
+            (patrz \texttt{ConditionVariable cond} - sekcja \ref{struct}.
+        \item Każdy blok w pamięci odpowiada co najwyżej 1 elementowi listy (może mieć 3 statusy: Free, oraz Valid i Zombie jako element listy)
+        \item Podczas iteracji przez listę następują próby usunięć elementów typu Zombie
+        \item Usuwanie elementu z listy wymaga uzyskanie dostępu do 3 elementów (poprzednik, usuwany i następnik).
+            Gdy poprzednik nie istnieje, zajmowany jest mutex indeksu head (patrz \texttt{headLock} - sekcja \ref{struct}).
+            Ostatni element nigdy nie jest usuwany od razu ze względów implementacyjnych.
+		\item Odczytywanie polega na przeiterowanie się po liście aż odnajdzie się pasujący element.
+            Odczytywanie z zabraniem polega dodatkowo na zmianie stanu bloku z Valid na Zombie.
 		\item Projekt wykonany w języku C++ (standard C++17).
 		\item Pamięć współdzielona oraz semafory będą zrealizowane według standardu POSIX.
-		\item Maksymalna liczba krotek jest stała - \texttt{MAX\_TUPLES\_COUNT}.
 		\item Obszar pamięci na krotki zawiera nagłówek określający ilość elementów krotki i typy jej elementów, a także wartości przesunięć względem początkowego adresu krotki. Wartości elementów będą stanowiły resztę obszaru.
 	\end{enumerate}
 	
 	\subsection{Struktura danych w pamięci współdzielonej}
+    \label{struct}
 	\begin{figure}[H]
 	\centering
 	\includegraphics[width=130mm]{images/struct.png}
@@ -82,9 +91,10 @@
 	
 	\subsection{Czytanie / wyjmowanie krotki}
 	Znalezienie krotki pasującej do wzorca wymaga sekwencyjnego odczytu pewnego (czasami całego) obszaru pamięci.
-	W tym celu należy blokować po kolei blokować dostęp do każdego elementu i zweryfikować jego zawartość zgodnie ze wzorcem.
-	Jeśli krotka pasuje do wzorca to, w zależności od użytej metody, jest odczytywana lub odczytywana i usuwana z pamięci.
+	W tym celu należy iterować się po liście elementów i weryfikować zawartość każdego elementu zgodnie ze wzorcem.
+    Jeśli krotka pasuje do wzorca to, w zależności od użytej metody, jest odczytywana lub odczytywana i usuwana (zmiana stanu na \texttt{Zombie}).
 	Jeśli nie została znaleziona proces zostaje zawieszony w oczekiwaniu na pojawienie się nowych krotek.
+    Próba usunięcia krotki \texttt{Zombie} następuje po otrzymaniu tego stanu, oraz przy każdej inkrementacji iteratora listy.
 	Usunięcie krotki wymaga zablokowania dostępu do sąsiadów (lista krotek jest dwukierunkowa) i odpowiedniego ustawienia wskaźników na następny i poprzedni element tak, aby lista krotek była ciągła. 
 		
 	\section{Interfejs użytkownika}
